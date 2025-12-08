@@ -1,0 +1,137 @@
+﻿@model IEnumerable<FINTCS.Models.TBLDEF>
+
+<div class="container mt-4">
+    <h3 class="mb-3">Tables Maintenance</h3>
+
+    <div class="row g-4">
+
+        <!-- Left Panel -->
+        <div class="col-md-6">
+
+            <input type="hidden" id="hdnPK" /> <!-- TBLSSERN -->
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Type</label>
+                <select id="ddlDef" class="form-select" size="4" required>
+                  @*   <option value="">-- Select Value --</option> *@
+                    @foreach (var item in Model)
+                    {
+                        <option value="@item.DTBLSERN">@item.DTBLDESC</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Description</label>
+                <input id="txtDesc"
+                       class="form-control"
+                       placeholder="Enter Description"
+                       required />
+                <span id="errDesc" class="text-danger mt-1" style="display:none;">
+                    Description is required*
+                </span>
+            </div>
+
+            <div class="d-flex justify-content-start">
+                <button id="btnSave" class="btn btn-primary me-2">Save</button>
+                <button id="btnClear" class="btn btn-secondary">Clear</button>
+            </div>
+
+            <div id="msgBox" class="mt-3"></div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Description</label>
+            <ul id="tblDatList" class="list-group shadow-sm"
+                style="max-height:400px; overflow-y:auto;">
+                <!-- Items will load via AJAX -->
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // Load side list based on dropdown selection
+        function loadTBLDAT(val) {
+            $.getJSON('@Url.Action("GetTBLDAT", "Dropdown")', { dtblSern: val }, function (data) {
+                var html = '';
+                $.each(data, function (i, item) {
+                    html += `<li class="list-group-item d-flex justify-content-between align-items-center"
+                                 data-id="${item.id}"
+                                 data-desc="${item.desc}">
+                                 ${item.desc}
+                             </li>`;
+                });
+                $("#tblDatList").html(html);
+            });
+        }
+
+        $(function () {
+
+            // Dropdown change
+            $("#ddlDef").change(function () {
+                $("#txtDesc").val('');
+                $("#hdnPK").val('');
+                var val = $(this).val();
+                if (val) loadTBLDAT(val);
+                else $("#tblDatList").html('');
+            });
+
+            // Click on side list item for editing
+            $(document).on("click", "#tblDatList li", function () {
+                $("#hdnPK").val($(this).data("id"));
+                $("#txtDesc").val($(this).data("desc"));
+            });
+
+            // Save button
+            $("#btnSave").click(function (e) {
+                e.preventDefault();
+
+                let dtbl = $("#ddlDef").val();
+                let desc = $("#txtDesc").val().trim();
+
+                // Client-side validation
+                if (!dtbl) { alert("Please select a dropdown value."); return; }
+                if (desc.length === 0) {
+                    $("#errDesc").show();
+                    $("#txtDesc").addClass("is-invalid");
+                    return;
+                } else {
+                    $("#errDesc").hide();
+                    $("#txtDesc").removeClass("is-invalid");
+                }
+
+                let TBLSSERN = $("#hdnPK").val();
+
+                $.post('@Url.Action("SaveData", "Dropdown")',
+                    { DTBLSERN: dtbl, TBLSDESC: desc, TBLSSERN: TBLSSERN },
+                    function (res) {
+                        if (res.success) {
+                            $("#msgBox").html('<div class="alert alert-success">Saved Successfully!</div>');
+                            loadTBLDAT(dtbl);
+                            $("#txtDesc").val('');
+                            $("#hdnPK").val('');
+                        } else {
+                            $("#msgBox").html('<div class="alert alert-danger">' + res.message + '</div>');
+                        }
+                    });
+            });
+
+            // Clear button
+            $("#btnClear").click(function () {
+                $("#ddlDef").val('');
+                $("#txtDesc").val('');
+                $("#hdnPK").val('');
+                $("#tblDatList").html('');
+                $("#errDesc").hide();
+                $("#txtDesc").removeClass("is-invalid");
+            });
+
+        });
+    </script>
+}

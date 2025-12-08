@@ -1,0 +1,357 @@
+﻿@model FINTCS.ViewModels.SocietyLoanVM
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@if (TempData["msg"] != null)
+{
+    <div class="alert alert-success">@TempData["msg"]</div>
+}
+
+<form asp-action="Upsert" asp-controller="Society" method="post">
+    <input type="hidden" asp-for="Society.Id" />
+
+    <!-- Basic Info Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Society Information</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label asp-for="Society.Name">Name <span class="text-danger">*</span></label>
+                    <input asp-for="Society.Name" class="form-control" />
+                    <span asp-validation-for="Society.Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Society.Address">Address <span class="text-danger">*</span></label>
+             
+                    <input asp-for="Society.Address" class="form-control" />
+                    <span asp-validation-for="Society.Address" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Society.City">City <span class="text-danger">*</span></label>
+                   
+                    <input asp-for="Society.City" class="form-control" />
+                    <span asp-validation-for="Society.City" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Society.Pin">Pin <span class="text-danger">*</span></label>
+                    <input asp-for="Society.Pin" class="form-control" />
+                    <span asp-validation-for="Society.Pin" class="text-danger"></span>
+
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Society.Phone"></label>
+                    <input asp-for="Society.Phone" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Mobile1">Mobile1 <span class="text-danger">*</span></label>
+                   
+                    <input asp-for="Society.Mobile1" class="form-control" oninput="allowOnlyNumbers(this)" maxlength="10" />
+
+                    <span asp-validation-for="Society.Mobile1" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Mobile2"></label>
+                  
+                    <input asp-for="Society.Mobile2" class="form-control" oninput="allowOnlyNumbers(this)" maxlength="10" />
+                    <span asp-validation-for="Society.Mobile2" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Mobile3"></label>
+                    <input asp-for="Society.Mobile3" class="form-control" oninput="allowOnlyNumbers(this)" maxlength="10" />
+                    <span asp-validation-for="Society.Mobile3" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Email1">Email1 <span class="text-danger">*</span></label>
+                    <input asp-for="Society.Email1" class="form-control" />
+                    <span asp-validation-for="Society.Email1" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Email2"></label>
+                    <input asp-for="Society.Email2" class="form-control" />
+                    <span asp-validation-for="Society.Email2" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Society.Email3"></label>
+                    <input asp-for="Society.Email3" class="form-control" />
+                    <span asp-validation-for="Society.Email3" class="text-danger"></span>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Society.Website"></label>
+                    <input asp-for="Society.Website" class="form-control" />
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Society.RegistrationNo">Registration No. <span class="text-danger">*</span></label>
+                    <input asp-for="Society.RegistrationNo" class="form-control" />
+                    <span asp-validation-for="Society.RegistrationNo" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-warning">Check Bounce Charges</div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <!-- Check Bounce Charges (Textbox) -->
+                <div class="col-md-6">
+                    <label asp-for="Society.CheckBounceCharges">Check Bounce Charges @* <span class="text-danger">*</span> *@</label>
+                    <input asp-for="Society.CheckBounceCharges" oninput="allowOnlyNumbers(this)" class="form-control text-right text-end num-zero" />
+                    <span asp-validation-for="Society.CheckBounceCharges" class="text-danger"></span>
+                </div>
+
+                <!-- Static Dropdown -->
+                <div class="col-md-6">
+                    <label asp-for="Society.ChargesType">Charges Type @* <span class="text-danger">*</span> *@</label>
+                    <select asp-for="Society.ChargesType" class="form-select">
+                        <option value="">-- Select Charges Type --</option>
+                        <option value="Fixed">Fixed</option>
+                        <option value="Percentage">Percentage</option>
+                        <option value="Service Charge">Service Charge</option>
+                        <option value="Penalty Charge">Penalty Charge</option>
+                    </select>
+                    <span asp-validation-for="Society.ChargesType" class="text-danger"></span>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Limit / Interest -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">Limit / Interest</div>
+        <div class="card-body">
+            <button type="button" class="btn btn-light me-2" id="btnLimit">Limit</button>
+            <button type="button" class="btn btn-light" id="btnInterest">Interest</button>
+
+           <div id="limitFields" style="display:none;" class="mt-3">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Society.Shares">Shares <span class="text-danger">*</span></label>
+            <input asp-for="Society.Shares" oninput="allowOnlyNumbers(this)" class="form-control text-end num-zero" />
+            <span asp-validation-for="Society.Shares" class="text-danger"></span>
+        </div>
+    </div>
+</div>
+
+<div id="interestFields" style="display:none;" class="mt-3">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Society.OD">OD(%) <span class="text-danger">*</span></label>
+            <input asp-for="Society.OD" oninput="allowOnlyNumbers(this)" class="form-control text-end num-zero" />
+            <span asp-validation-for="Society.OD" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Society.CD">CD(%) <span class="text-danger">*</span></label>
+            <input asp-for="Society.CD" oninput="allowOnlyNumbers(this)" class="form-control text-end num-zero" />
+            <span asp-validation-for="Society.CD" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Society.Dividend">Dividend(%) <span class="text-danger">*</span></label>
+            <input asp-for="Society.Dividend" oninput="allowOnlyNumbers(this)" class="form-control text-end num-zero" />
+            <span asp-validation-for="Society.Dividend" class="text-danger"></span>
+        </div>
+    </div>
+</div>
+
+        </div>
+    </div>
+
+    <!-- Loan Master Repeatable UI -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between">
+            <strong>Loan </strong>
+            <button type="button" class="btn btn-light btn-sm" id="btnAddLoan">+ Add Loan</button>
+        </div>
+
+        <div class="card-body" id="loanContainer">
+            @if (Model.LoanMasters != null && Model.LoanMasters.Count > 0)
+            {
+                for (int i = 0; i < Model.LoanMasters.Count; i++)
+                {
+                    var loan = Model.LoanMasters[i];
+                    var isFirst = i == 0;
+
+                    <div class="border p-3 mb-3 loanRow">
+
+                        <!-- Hidden LoanMasterId -->
+                        <input type="hidden" name="LoanList[@i].LoanMasterId" value="@loan.LoanMasterId" />
+
+                        <div class="row g-3">
+                            <div class="@(isFirst ? "col-md-3" : "col-md-4")">
+                                <label>Loan Name</label>
+                                <input name="LoanList[@i].LoanName" class="form-control" value="@loan.LoanName" />
+                            </div>
+
+                            @if (isFirst)
+                            {
+                                <div class="col-md-3">
+                                    <label>Multiple Times</label>
+                                    <input name="LoanList[@i].MultipleTimes" class="form-control text-end num-zero" value="@loan.MultipleTimes" />
+
+                                </div>
+                            }
+
+                            <div class="@(isFirst ? "col-md-3" : "col-md-4")">
+                                <label>Max Limit</label>
+                                <input name="LoanList[@i].MaxLimit" class="form-control text-end num-zero" value="@loan.MaxLimit" />
+                            </div>
+
+                            <div class="@(isFirst ? "col-md-3" : "col-md-4")">
+                                <label>Loan Interest</label>
+                                <input name="LoanList[@i].LoanInt" class="form-control text-end num-zero" value="@loan.LoanInt" />
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg w-100">Save</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+         function allowOnlyNumbers(input) {
+            input.value = input.value.replace(/[^0-9]/g, "");
+        }
+
+        // Limit / Interest Toggle
+        $("#btnLimit").click(function () {
+            $("#limitFields").slideDown();
+            $("#interestFields").slideUp();
+        });
+        $("#btnInterest").click(function () {
+            $("#interestFields").slideDown();
+            $("#limitFields").slideUp();
+        });
+
+                // Loan rows adding
+        let loanIndex = @(Model.LoanMasters == null ? 0 : Model.LoanMasters.Count);
+
+        $(document).ready(function () {
+
+            // FIRST ROW – only if no model data
+            if (@(Model.LoanMasters == null ? 0 : Model.LoanMasters.Count) === 0) {
+
+                let firstRow = `
+        <div class="border p-3 mb-3 loanRow" style="background:#ffffff; border-radius:8px;">
+            <div class="row g-3">
+
+                <input type="hidden" name="LoanList[0].LoanMasterId" value="0" />
+
+                <div class="col-md-3">
+                    <label>Loan Name</label>
+                    <input name="LoanList[0].LoanName"
+                           class="form-control"
+                           value="General Loan" />
+                </div>
+
+                <div class="col-md-3">
+                    <label>Multiple Times</label>
+                    <input name="LoanList[0].MultipleTimes" class="form-control text-end num-zero" value="0.00" />
+                </div>
+
+                <div class="col-md-3">
+                    <label>Max Limit</label>
+                    <input name="LoanList[0].MaxLimit" class="form-control text-end num-zero" value="0.00" />
+                </div>
+
+                <div class="col-md-3">
+                    <label>Loan Interest</label>
+                    <input name="LoanList[0].LoanInt" class="form-control text-end num-zero" value="0.00" />
+                </div>
+
+            </div>
+        </div>`;
+
+                $("#loanContainer").append(firstRow);
+
+                // Next row index becomes 1
+                loanIndex = 1;
+            }
+        });
+
+        // ADD NEW ROW
+        $("#btnAddLoan").click(function () {
+
+            let rowColor = (loanIndex % 2 === 0) ? "#ffffff" : "#f4f4f4";
+
+            let template = `
+        <div class="border p-3 mb-3 loanRow" style="background:${rowColor}; border-radius:8px;">
+            <div class="row g-3">
+
+                <input type="hidden" name="LoanList[${loanIndex}].LoanMasterId" value="0" />
+
+                <div class="col-md-4">
+                    <label>Loan Name</label>
+                    <input name="LoanList[${loanIndex}].LoanName" class="form-control" value="" />
+                </div>
+
+                <div class="col-md-4">
+                    <label>Max Limit</label>
+                    <input name="LoanList[${loanIndex}].MaxLimit" class="form-control text-end num-zero" value="0.00" />
+                </div>
+
+                <div class="col-md-4">
+                    <label>Loan Interest</label>
+                    <input name="LoanList[${loanIndex}].LoanInt" class="form-control text-end num-zero" value="0.00" />
+                </div>
+
+            </div>
+        </div>`;
+
+            $("#loanContainer").append(template);
+
+            loanIndex++;   // NEXT INDEX
+       
+
+        
+
+
+    // 🔥 Re-bind zero hide/show logic for newly added rows
+    $(".num-zero").off().on("focus", function () {
+        if ($(this).val() === "0.00" || $(this).val() === "0") {
+            $(this).val("");
+        }
+    });
+
+    $(".num-zero").on("blur", function () {
+        if ($(this).val().trim() === "") {
+            $(this).val("0.00");
+        }
+    });
+
+});
+
+                $(document).ready(function () {
+
+            // Apply zebra colors to existing rows
+            $("#loanContainer .loanRow").each(function (i) {
+                let rowColor = (i % 2 === 0) ? "#ffffff" : "#f4f4f4";
+                $(this).css("background", rowColor);
+            });
+
+        });
+              $(document).ready(function () {
+
+            $(".num-zero").on("focus", function () {
+                if ($(this).val() === "0.00") {
+                    $(this).val("");
+                }
+            });
+
+            $(".num-zero").on("blur", function () {
+                if ($(this).val().trim() === "") {
+                    $(this).val("0.00");
+                }
+            });
+
+        });
+    </script>
+}
