@@ -1,0 +1,353 @@
+﻿@* Ledger Entry View *@
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: '@TempData["Success"]',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    </script>
+}
+
+<style>
+    .form-card {
+        width: 600px;
+        margin: 30px auto;
+        padding: 25px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px #0002;
+        font-family: Arial;
+    }
+
+    .form-row {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    label {
+        font-weight: 600;
+        width: 130px;
+    }
+
+    .text-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+    }
+
+    .btn {
+        padding: 7px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: none;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: #fff;
+    }
+
+    .btn-secondary {
+        background: #444;
+        color: #fff;
+    }
+
+    #ledgerPopup, #groupPopup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        width: 450px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 6px 30px rgba(0,0,0,.4);
+        padding: 20px;
+        z-index: 9999;
+    }
+
+    .ledger-item, .group-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+
+        .ledger-item:hover, .group-item:hover {
+            background: #f1f1f1;
+        }
+
+    .small-text {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .popup-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .popup-box {
+        border: 1px solid #ddd;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .ledger-grid-header,
+    .ledger-grid-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 8px 10px;
+        align-items: center;
+    }
+
+    .ledger-grid-header {
+        font-weight: bold;
+        background: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .ledger-grid-row {
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+        .ledger-grid-row:hover {
+            background: #f9f9f9;
+        }
+
+    .ledger-grid {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        margin-top: 8px;
+    }
+</style>
+
+<div class="form-card">
+    <h3 style="text-align:center">Ledger Entry</h3>
+
+    <form id="ledgerForm" asp-action="SaveLedger" method="post">
+
+        <!-- MODE -->
+        <div class="form-row">
+            <label>Mode</label>
+            <label><input type="radio" name="mode" value="new" checked /> New</label>
+            <label><input type="radio" name="mode" value="update" /> Update</label>
+
+            <button type="button" id="showLedgerBtn"
+                    class="btn btn-secondary" style="display:none;">
+                Show Ledger
+            </button>
+        </div>
+
+        <input type="hidden" id="Id" name="Id" />
+
+        <!-- LEDGER NAME -->
+        <div class="form-row">
+            <label>Name</label>
+            <input type="text" id="ledger" name="ledger"
+                   class="text-input" required />
+        </div>
+
+        <!-- GROUP -->
+        <div class="form-row">
+            <label>Under Group</label>
+            <select id="GroupId" name="GroupId" class="text-input">
+                @foreach (var g in ViewBag.Groups)
+                {
+                    <option value="@g.Id">@g.GroupName</option>
+                }
+            </select>
+
+            <button type="button" id="openGroupList"
+                    class="btn btn-secondary small-btn">
+                List »
+            </button>
+        </div>
+
+        <!-- OPENING -->
+        <div class="form-row">
+            <label>Opening</label>
+            <input type="text" id="OpeningBalance"
+                   name="OpeningBalance" value="0"
+                   class="text-input" />
+        </div>
+
+        <!-- DR CR -->
+        <div class="form-row">
+            <label>DR / CR</label>
+            <select id="drcr" name="drcr" class="text-input">
+                <option value="1">Dr</option>
+                <option value="2">Cr</option>
+            </select>
+        </div>
+
+        <button type="submit"
+                class="btn btn-primary" style="width:100%">
+            Save
+        </button>
+    </form>
+</div>
+
+<!-- LEDGER POPUP -->
+<!-- LEDGER POPUP -->
+<div id="ledgerPopup">
+    <h4 style="text-align:center">Select Ledger</h4>
+
+    <!-- SEARCH : ONLY LEDGER -->
+    <input type="text" id="ledgerSearchBox"
+           class="text-input"
+           placeholder="Search Ledger" />
+
+    <!-- GRID HEADER -->
+    <div class="ledger-grid-header">
+        <div>Ledger</div>
+        <div>Group</div>
+    </div>
+
+    <!-- GRID BODY -->
+    <div class="ledger-grid">
+        @foreach (var l in ViewBag.GroupLedgers)
+        {
+            <div class="ledger-grid-row ledger-item"
+                 data-id="@l.Id"
+                 data-name="@l.ledger"
+                 data-groupid="@l.GroupId">
+                <div><b>@l.ledger</b></div>
+                <div class="small-text">@l.GroupName</div>
+            </div>
+        }
+    </div>
+
+    <button class="btn btn-secondary"
+            style="width:100%;margin-top:10px"
+            onclick="$('#ledgerPopup').hide();">
+        Close
+    </button>
+</div>
+
+
+
+<!-- GROUP POPUP -->
+<div id="groupPopup">
+    <h4 style="text-align:center">Select Group</h4>
+
+    <input type="text" id="groupSearch"
+           class="text-input"
+           placeholder="Search Group" />
+
+    <div style="max-height:300px;overflow-y:auto;margin-top:10px;border:1px solid #ddd">
+        @foreach (var g in ViewBag.Groups)
+        {
+            <div class="group-item"
+                 data-id="@g.Id">
+                @g.GroupName
+            </div>
+        }
+    </div>
+
+    <button class="btn btn-secondary"
+            style="width:100%;margin-top:10px"
+            onclick="$('#groupPopup').hide();">
+        Close
+    </button>
+</div>
+
+<script>
+    $(document).ready(function () {
+
+        function setModeUI() {
+            let mode = $('input[name="mode"]:checked').val();
+
+            if (mode === "update") {
+                $("#showLedgerBtn").show();
+                $("#ledger").val('').prop("disabled", true);
+                $("#Id").val('');
+            } else {
+                $("#showLedgerBtn").hide();
+                $("#ledger").prop("disabled", false);
+                $("#ledger").val('');
+                $("#Id").val('');
+            }
+        }
+
+        setModeUI();
+        $('input[name="mode"]').change(setModeUI);
+
+        $("#showLedgerBtn").click(function () {
+            $("#ledgerPopup").show();
+        });
+
+            $("#ledgerSearchBox").keyup(function () {
+        let v = $(this).val().toLowerCase();
+        $(".ledger-item").each(function () {
+            let ledgerName = $(this).data("name").toLowerCase();
+            $(this).toggle(ledgerName.indexOf(v) > -1);
+        });
+    });
+
+        $(".ledger-item").click(function () {
+            $("#Id").val($(this).data("id"));
+            $("#ledger").val($(this).data("name")).prop("disabled", false);
+            $("#GroupId").val($(this).data("groupid"));
+            $("#ledgerPopup").hide();
+        });
+
+        $("#openGroupList").click(function () {
+            $("#groupPopup").show();
+        });
+
+            $("#groupSearch").on("keyup", function () {
+        let v = $(this).val().toLowerCase();
+
+        $(".group-item").each(function () {
+            let text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(v) > -1);
+        });
+    });
+
+        $(".group-item").click(function () {
+            $("#GroupId").val($(this).data("id"));
+            $("#groupPopup").hide();
+        });
+
+        $("#ledgerForm").submit(function (e) {
+            e.preventDefault();
+
+            let name = $("#ledger").val().trim();
+            let id = $("#Id").val();
+            let mode = $('input[name="mode"]:checked').val();
+            let duplicate = false;
+
+            $(".ledger-item").each(function () {
+                let existingName = $(this).data("name").toLowerCase();
+                let existingId = $(this).data("id");
+
+                if (existingName === name.toLowerCase() && existingId != id) {
+                    duplicate = true;
+                }
+            });
+
+            if (duplicate) {
+                Swal.fire("Error", "Ledger name already exists", "error");
+                return;
+            }
+
+            this.submit();
+        });
+    });
+</script>

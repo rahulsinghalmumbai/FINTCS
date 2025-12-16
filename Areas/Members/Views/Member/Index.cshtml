@@ -1,5 +1,4 @@
-﻿@* @model FINTCS.Areas.Members.Models.Member *@
-@model FINTCS.Areas.Members.Models.Member
+﻿@model FINTCS.Areas.Members.Models.Member
 @{
     ViewData["Title"] = "Member";
     var step = ViewBag.Step ?? 1;
@@ -8,99 +7,156 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
 <div class="container mt-4">
-    <form asp-area="Members" asp-controller="Member" asp-action="Index" method="post" enctype="multipart/form-data">
-        <input type="hidden" asp-for="Id" />
 
-        <!-- Tabs -->
-        <ul class="nav nav-tabs mb-3" id="memberTabs" role="tablist">
+    <form asp-area="Members" asp-controller="Member" asp-action="Index" method="post" enctype="multipart/form-data" id="memberForm">
+
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="PhotoPath" />
+        <input type="hidden" asp-for="SignaturePath" />
+
+        <!-- ✅ SUCCESS MESSAGE -->
+        @if (TempData["SuccessMsg"] != null)
+        {
+            <div class="alert alert-success text-center fw-bold">
+                ✅ @TempData["SuccessMsg"]
+            </div>
+        }
+
+        <!-- ✅ TABS (NOW CLICKABLE) -->
+        <ul class="nav nav-tabs mb-3" id="memberTabs">
             <li class="nav-item">
-                <button type="button" class="nav-link @(step == 1 ? "active" : "")" data-bs-toggle="tab" data-bs-target="#tab1">General</button>
+                <button class="nav-link @(step == 1 ? "active" : "")" data-bs-toggle="tab" data-bs-target="#step1" type="button">General</button>
             </li>
             <li class="nav-item">
-                <button type="button" class="nav-link @(step == 2 ? "active" : "") @(step < 2 ? "disabled" : "")" data-bs-toggle="tab" data-bs-target="#tab2">Photo & Opening Balance</button>
+                <button class="nav-link @(step == 2 ? "active" : "")" data-bs-toggle="tab" data-bs-target="#step2" type="button">Photo & Opening</button>
             </li>
             <li class="nav-item">
-                <button type="button" class="nav-link @(step == 3 ? "active" : "") @(step < 3 ? "disabled" : "")" data-bs-toggle="tab" data-bs-target="#tab3">Monthly Deduction</button>
+                <button class="nav-link @(step == 3 ? "active" : "")" data-bs-toggle="tab" data-bs-target="#step3" type="button">Monthly Deduction</button>
             </li>
         </ul>
 
         <div class="tab-content">
 
-            <!-- TAB 1 -->
-            <div class="tab-pane fade @(step == 1 ? "show active" : "")" id="tab1">
-                <div class="card p-3 mb-3" style="background:#e3f2fd;">
-                    <h5 class="text-primary fw-bold mb-3">General</h5>
+            <!-- ================= STEP 1 ================= -->
+            <div class="tab-pane fade @(step == 1 ? "show active" : "")" id="step1">
+                <div class="card p-3 bg-primary-subtle">
+                    <h5 class="fw-bold">General Details</h5>
+
                     <div class="row g-3">
+                        <div class="col-md-6"><label>Mem No *</label><input asp-for="Memno" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Name *</label><input asp-for="Name" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Father Name *</label><input asp-for="FatherName" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Office Address *</label><textarea asp-for="OfficeAddress" class="form-control step1"></textarea></div>
+                        <div class="col-md-6"><label>City *</label><input asp-for="City" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Phone *</label><input asp-for="Phone" class="form-control step1" /></div>
 
-                        <div class="col-md-6"><label>Mem.No.</label><input asp-for="Memno" class="form-control" /></div>
+                        <div class="col-md-6">
+                            <label>Branch *</label>
+                            <select asp-for="Branch" class="form-select step1">
+                                <option value="">Select</option>
+                                @foreach (var item in ViewBag.BranchList)
+                                {
+                                    <option value="@item.TBLSDESC">@item.TBLSDESC</option>
+                                }
+                            </select>
+                        </div>
 
-                        <div class="col-md-6"><label>Name</label><input asp-for="Name" class="form-control" /></div>
-                        <div class="col-md-6"><label>Father Name</label><input asp-for="FatherName" class="form-control" /></div>
-                        <div class="col-md-6"><label>Office Address</label><textarea asp-for="OfficeAddress" class="form-control" rows="3"></textarea></div>
-                        <div class="col-md-6"><label>City</label><input asp-for="City" class="form-control" /></div>
-                        <div class="col-md-6"><label>Phone</label><input asp-for="Phone" class="form-control" /></div>
-                        <div class="col-md-6"><label>Branch</label><input asp-for="Branch" class="form-control" /></div>
-                        <div class="col-md-6"><label>Designation</label><input asp-for="Designation" class="form-control" /></div>
-                        <div class="col-md-6"><label>Mobile1</label><input asp-for="Mobile1" class="form-control" /></div>
-                        <div class="col-md-6"><label>Mobile2</label><input asp-for="Mobile2" class="form-control" /></div>
-                        <div class="col-md-6"><label>Residence Address</label><textarea asp-for="ResidenceAddress" class="form-control" rows="3"></textarea></div>
-                        <div class="col-md-6"><label>DOB</label><input asp-for="DOB" type="date" class="form-control" /></div>
-                        <div class="col-md-6"><label>DOJ Society</label><input asp-for="DOJSociety" type="date" class="form-control" /></div>
-                        <div class="col-md-6"><label>Email</label><input asp-for="Email" class="form-control" /></div>
-                        <div class="col-md-6"><label>DOJ</label><input asp-for="DOJ" type="date" class="form-control" /></div>
+                        <div class="col-md-6">
+                            <label>Designation *</label>
+                            <select asp-for="Designation" class="form-select step1">
+                                <option value="">Select</option>
+                                @foreach (var item in ViewBag.DesignationList)
+                                {
+                                    <option value="@item.TBLSDESC">@item.TBLSDESC</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6"><label>Mobile 1 *</label><input asp-for="Mobile1" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Mobile 2</label><input asp-for="Mobile2" class="form-control" /></div>
+
+                        <div class="col-md-6"><label>Residence Address *</label><textarea asp-for="ResidenceAddress" class="form-control step1"></textarea></div>
+                        <div class="col-md-6"><label>DOB *</label><input asp-for="DOB" type="date" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>DOJ Society *</label><input asp-for="DOJSociety" type="date" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>Email *</label><input asp-for="Email" class="form-control step1" /></div>
+                        <div class="col-md-6"><label>DOJ *</label><input asp-for="DOJ" type="date" class="form-control step1" /></div>
                         <div class="col-md-6"><label>DOR</label><input asp-for="DOR" type="date" class="form-control" /></div>
-                        <div class="col-md-6"><label>Nominee</label><input asp-for="Nominee" class="form-control" /></div>
-                        <div class="col-md-6"><label>Nominee Relation</label><input asp-for="NomineeRelation" class="form-control" /></div>
+                        <div class="col-md-6"><label>Nominee *</label><input asp-for="Nominee" class="form-control step1" /></div>
+
+                        <div class="col-md-6">
+                            <label>Nominee Relation *</label>
+                            <select asp-for="NomineeRelation" class="form-select step1">
+                                <option value="">Select</option>
+                                @foreach (var item in ViewBag.NomineeRelationList)
+                                {
+                                    <option value="@item.TBLSDESC">@item.TBLSDESC</option>
+                                }
+                            </select>
+                        </div>
                     </div>
+
                     <div class="text-end mt-3">
-                        <button type="submit" name="step" value="1" class="btn btn-primary">Save & Next</button>
+                        <button type="button" class="btn btn-primary" onclick="validateStep1()">Save & Next</button>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2 -->
-            <div class="tab-pane fade @(step == 2 ? "show active" : "")" id="tab2">
-                <div class="card p-3 mb-3" style="background:#e8f5e9;">
-                    <h5 class="text-success fw-bold mb-3">Photo & Opening Balance</h5>
+            <!-- ================= STEP 2 ================= -->
+            <div class="tab-pane fade @(step == 2 ? "show active" : "")" id="step2">
+                <div class="card p-3 bg-success-subtle">
+                    <h5 class="fw-bold">Photo & Opening</h5>
+
                     <div class="row g-3">
-                        <div class="col-md-6"><label>Share</label><input asp-for="Share" class="form-control" /></div>
-                        <div class="col-md-6"><label>CD</label><input asp-for="CD" class="form-control" /></div>
-                        <div class="col-md-6"><label>Bank Name</label><input asp-for="BankName" class="form-control" /></div>
-                        <div class="col-md-6"><label>Payable At</label><input asp-for="PayableAt" class="form-control" /></div>
-                        <div class="col-md-6"><label>Account No.</label><input asp-for="AccountNo" class="form-control" /></div>
-                    </div>
-                    <div class="row g-3 mt-3">
+                        <div class="col-md-4"><label>Share *</label><input asp-for="Share" class="form-control step2" /></div>
+                        <div class="col-md-2"><label>Type</label><select asp-for="ShareType" class="form-select"><option>DR</option><option>CR</option></select></div>
+
+                        <div class="col-md-4"><label>CD *</label><input asp-for="CD" class="form-control step2" /></div>
+                        <div class="col-md-2"><label>Type</label><select asp-for="CDType" class="form-select"><option>DR</option><option>CR</option></select></div>
+
+                        <div class="col-md-6"><label>Bank Name *</label><input asp-for="BankName" class="form-control step2" /></div>
+                        <div class="col-md-6"><label>Payable At *</label><input asp-for="PayableAt" class="form-control step2" /></div>
+                        <div class="col-md-6"><label>Account No *</label><input asp-for="AccountNo" class="form-control step2" /></div>
+
                         <div class="col-md-6">
-                            <label>Photo</label>
+                            <label>Status *</label>
+                            <select asp-for="Status" class="form-select step2"><option>Active</option><option>Inactive</option></select>
+                        </div>
+
+                        <div class="col-md-6"><label>Date *</label><input asp-for="Date" type="date" class="form-control step2" /></div>
+
+                        <div class="col-md-6">
+                            <label>Photo *</label>
                             <input type="file" name="PhotoFile" id="PhotoFile" class="form-control" />
-                            <img id="photoPreview" src="@Model.PhotoPath" class="img-thumbnail mt-2" style="max-height:150px;" />
+                            <img src="@Model.PhotoPath" id="photoPreview" class="img-thumbnail mt-2" style="max-height:100px;" />
                         </div>
 
                         <div class="col-md-6">
-                            <label>Signature</label>
+                            <label>Signature *</label>
                             <input type="file" name="SignatureFile" id="SignatureFile" class="form-control" />
-                            <img id="signPreview" src="@Model.SignaturePath" class="img-thumbnail mt-2" style="max-height:150px;" />
+                            <img src="@Model.SignaturePath" id="signPreview" class="img-thumbnail mt-2" style="max-height:100px;" />
                         </div>
                     </div>
 
                     <div class="text-end mt-3">
-                        <button type="submit" name="step" value="2" class="btn btn-warning">Save & Next</button>
+                        <button type="button" class="btn btn-warning" onclick="validateStep2()">Save & Next</button>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 3 -->
-            <div class="tab-pane fade @(step == 3 ? "show active" : "")" id="tab3">
-                <div class="card p-3" style="background:#fff3e0;">
-                    <h5 class="text-warning fw-bold mb-3">Monthly Deduction</h5>
+            <!-- ================= STEP 3 ================= -->
+            <div class="tab-pane fade @(step == 3 ? "show active" : "")" id="step3">
+                <div class="card p-3 bg-warning-subtle">
+                    <h5 class="fw-bold">Monthly Deduction</h5>
+
                     <div class="row g-3">
-                        <div class="col-md-6"><label>Deduction Share</label><input asp-for="DeductionShare" class="form-control" /></div>
-                        <div class="col-md-6"><label>WithDrawl</label><input asp-for="WithDrawl" class="form-control" /></div>
-                        <div class="col-md-6"><label>G Loan Instalment</label><input asp-for="GLoanInstalment" class="form-control" /></div>
-                        <div class="col-md-6"><label>E Loan Instalment</label><input asp-for="ELoanInstalment" class="form-control" /></div>
+                        <div class="col-md-6"><label>Deduction Share *</label><input asp-for="DeductionShare" class="form-control step3" /></div>
+                        <div class="col-md-6"><label>Withdrawl *</label><input asp-for="WithDrawl" class="form-control step3" /></div>
+                        <div class="col-md-6"><label>G Loan Instalment *</label><input asp-for="GLoanInstalment" class="form-control step3" /></div>
+                        <div class="col-md-6"><label>E Loan Instalment *</label><input asp-for="ELoanInstalment" class="form-control step3" /></div>
                     </div>
+
                     <div class="text-end mt-3">
-                        <button type="submit" name="step" value="3" class="btn btn-success px-4">Final Save</button>
+                        <button type="button" class="btn btn-success" onclick="validateStep3()">Final Save</button>
                     </div>
                 </div>
             </div>
@@ -108,53 +164,113 @@
         </div>
     </form>
 </div>
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                ✅ Member form has been submitted successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    // Activate current tab after post
-    var step = @step;
-    document.querySelectorAll('#memberTabs button').forEach((btn, index) => {
-        // Enable only current step and previous steps
-        if (index + 1 <= step) btn.classList.remove('disabled');
-        else btn.classList.add('disabled');
+    // ✅ IMAGE PREVIEW (AS IT IS — TUMHARA WALA)
+    $("#PhotoFile").change(function () {
+        var reader = new FileReader();
+        reader.onload = e => $("#photoPreview").attr("src", e.target.result);
+        reader.readAsDataURL(this.files[0]);
     });
 
-    // Show current tab
-    var tabEl = document.querySelector(`#memberTabs button:nth-child(${step})`);
-    if (tabEl) {
-        var tab = new bootstrap.Tab(tabEl);
-        tab.show();
+    $("#SignatureFile").change(function () {
+        var reader = new FileReader();
+        reader.onload = e => $("#signPreview").attr("src", e.target.result);
+        reader.readAsDataURL(this.files[0]);
+    });
+
+    // ✅ STEP 1 VALIDATION (NO ALERT)
+    function validateStep1() {
+        let valid = true;
+
+        $(".step1").each(function () {
+            if ($(this).val().trim() === "") {
+                $(this).addClass("is-invalid");
+                valid = false;
+            } else {
+                $(this).removeClass("is-invalid");
+            }
+        });
+
+        if (!valid) return false;
+
+        $("<input>").attr({ type: "hidden", name: "step", value: "1" }).appendTo("#memberForm");
+        $("#memberForm").submit();
     }
-    
-    $(document).ready(function () {
 
-        // ✅ PHOTO PREVIEW
-        $("#PhotoFile").change(function () {
-            var input = this;
+    // ✅ STEP 2 VALIDATION (NO ALERT + FILE CHECK)
+    function validateStep2() {
+        let valid = true;
 
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    $("#photoPreview").attr("src", e.target.result);
-                };
-                reader.readAsDataURL(input.files[0]);
+        $(".step2").each(function () {
+            if ($(this).val().trim() === "") {
+                $(this).addClass("is-invalid");
+                valid = false;
+            } else {
+                $(this).removeClass("is-invalid");
             }
         });
 
-        // ✅ SIGNATURE PREVIEW
-        $("#SignatureFile").change(function () {
-            var input = this;
+        // ✅ PHOTO & SIGNATURE REQUIRED (NO POPUP)
+        if ($("#PhotoFile").val() === "") {
+            $("#PhotoFile").addClass("is-invalid");
+            valid = false;
+        } else {
+            $("#PhotoFile").removeClass("is-invalid");
+        }
 
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    $("#signPreview").attr("src", e.target.result);
-                };
-                reader.readAsDataURL(input.files[0]);
+        if ($("#SignatureFile").val() === "") {
+            $("#SignatureFile").addClass("is-invalid");
+            valid = false;
+        } else {
+            $("#SignatureFile").removeClass("is-invalid");
+        }
+
+        if (!valid) return false;
+
+        $("<input>").attr({ type: "hidden", name: "step", value: "2" }).appendTo("#memberForm");
+        $("#memberForm").submit();
+    }
+
+    // ✅ STEP 3 VALIDATION (FINAL SAVE)
+      function validateStep3() {
+        let valid = true;
+
+        $(".step3").each(function () {
+            if ($(this).val().trim() === "") {
+                $(this).addClass("is-invalid");
+                valid = false;
+            } else {
+                $(this).removeClass("is-invalid");
             }
         });
 
-    });
+        if (!valid) return false;
 
+        // ✅ STEP VALUE SET
+        $("<input>").attr({ type: "hidden", name: "step", value: "3" }).appendTo("#memberForm");
+
+        // ✅ TOAST SHOW
+        var toastEl = document.getElementById('successToast');
+        var toast = new bootstrap.Toast(toastEl);
+        toast.show();
+
+        // ✅ 1 second baad submit
+        setTimeout(function () {
+            $("#memberForm").submit();
+        }, 1000);
+    }
 </script>

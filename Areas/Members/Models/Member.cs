@@ -7,10 +7,10 @@ namespace FINTCS.Areas.Members.Models
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Mem.No. required")]
+       
         public string? Memno { get; set; }
 
-        [Required(ErrorMessage = "Name required")]
+
         public string? Name { get; set; }
 
         public string? FatherName { get; set; }
@@ -23,19 +23,19 @@ namespace FINTCS.Areas.Members.Models
         public string? Mobile2 { get; set; }
         public string? ResidenceAddress { get; set; }
 
-        [DataType(DataType.Date)]
+      
         public DateTime? DOB { get; set; }
 
-        [DataType(DataType.Date)]
+    
         public DateTime? DOJSociety { get; set; }
 
-        [EmailAddress(ErrorMessage = "Invalid Email")]
+       
         public string? Email { get; set; }
 
-        [DataType(DataType.Date)]
+     
         public DateTime? DOJ { get; set; }
 
-        [DataType(DataType.Date)]
+ 
         public DateTime? DOR { get; set; }
 
         public string? Nominee { get; set; }
