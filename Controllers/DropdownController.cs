@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 public class DropdownController : Controller
 {
-    private readonly IGenericService<TBLDEF> _repoDef;
-    private readonly IGenericService<TBLDAT> _repoDat;
+    private readonly ISocietyService<TBLDEF> _repoDef;
+    private readonly ISocietyService<TBLDAT> _repoDat;
 
     public DropdownController(
-        IGenericService<TBLDEF> repoDef,
-        IGenericService<TBLDAT> repoDat)
+        ISocietyService<TBLDEF> repoDef,
+        ISocietyService<TBLDAT> repoDat)
     {
         _repoDef = repoDef;
         _repoDat = repoDat;

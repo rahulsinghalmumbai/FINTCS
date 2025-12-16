@@ -6,12 +6,12 @@ using System.Linq.Expressions;
 
 namespace FINTCS.Repositories
 {
-    public class GenericService<T> : IGenericService<T> where T : class
+    public class SocietyService<T> : ISocietyService<T> where T : class
     {
         private readonly ApplicationDbContext _context;
         private readonly DbSet<T> _db;
 
-        public GenericService(ApplicationDbContext context)
+        public SocietyService(ApplicationDbContext context)
         {
             _context = context;
             _db = _context.Set<T>();

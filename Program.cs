@@ -14,7 +14,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Repository DI
-builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
+builder.Services.AddScoped(typeof(ISocietyService<>), typeof(SocietyService<>));
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 

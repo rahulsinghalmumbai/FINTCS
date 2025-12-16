@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace FINTCS.Repositories
 {
-    public interface IGenericService<T> where T : class
+    public interface ISocietyService<T> where T : class
     {
         Task<T?> GetFirstAsync(Expression<Func<T, bool>>? predicate = null);
 

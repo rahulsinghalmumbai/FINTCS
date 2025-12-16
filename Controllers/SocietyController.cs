@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 
 public class SocietyController : Controller
 {
-    private readonly IGenericService<Society> _societyRepo;
-    private readonly IGenericService<LoanMaster> _loanRepo;
+    private readonly ISocietyService<Society> _societyRepo;
+    private readonly ISocietyService<LoanMaster> _loanRepo;
 
-    public SocietyController(IGenericService<Society> societyRepo,
-                               IGenericService<LoanMaster> loanRepo)
+    public SocietyController(ISocietyService<Society> societyRepo,
+                               ISocietyService<LoanMaster> loanRepo)
     {
         _societyRepo = societyRepo;
         _loanRepo = loanRepo;
