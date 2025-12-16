@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 public class DropdownController : Controller
 {
-    private readonly IGenericRepository<TBLDEF> _repoDef;
-    private readonly IGenericRepository<TBLDAT> _repoDat;
+    private readonly IGenericService<TBLDEF> _repoDef;
+    private readonly IGenericService<TBLDAT> _repoDat;
 
     public DropdownController(
-        IGenericRepository<TBLDEF> repoDef,
-        IGenericRepository<TBLDAT> repoDat)
+        IGenericService<TBLDEF> repoDef,
+        IGenericService<TBLDAT> repoDat)
     {
         _repoDef = repoDef;
         _repoDat = repoDat;
@@ -19,7 +19,7 @@ public class DropdownController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var data = await _repoDef.GetAll();
+        var data = await _repoDef.GetDropdownListAsync();
         return View(data);
     }
 
@@ -30,7 +30,7 @@ public class DropdownController : Controller
 
         var result = data.Select(x => new
         {
-            id = x.TBLSSERN,       // ← correct primary key
+            id = x.TBLSSERN,
             desc = x.TBLSDESC
         });
 
@@ -41,34 +41,17 @@ public class DropdownController : Controller
     public async Task<IActionResult> SaveData(int DTBLSERN, string TBLSDESC, int? TBLSSERN)
     {
         if (string.IsNullOrWhiteSpace(TBLSDESC))
-        {
             return Json(new { success = false, message = "Description is required" });
-        }
-        if (TBLSSERN.HasValue && TBLSSERN.Value > 0)
-        {
-            // UPDATE existing
-            var existing = await _repoDat.GetByIdAsync(TBLSSERN.Value);
-            if (existing != null)
-            {
-                existing.TBLSDESC = TBLSDESC;
-                _repoDat.Update(existing);
-                await _repoDat.SaveAsync();
-            }
 
-        }
-        else
+        var tblDat = new TBLDAT
         {
-            // INSERT new
-            var newRecord = new TBLDAT
-            {
-                DTBLSERN = DTBLSERN,
-                TBLSDESC = TBLSDESC
-            };
-            await _repoDat.AddAsync(newRecord);
-            await _repoDat.SaveAsync();
-        }
+            TBLSSERN = TBLSSERN ?? 0,
+            DTBLSERN = DTBLSERN,
+            TBLSDESC = TBLSDESC
+        };
 
-        return Json(new { success = true });
+        int newId = await _repoDat.UpsertTBLDATAsync(tblDat);
+
+        return Json(new { success = true, id = newId });
     }
-
 }

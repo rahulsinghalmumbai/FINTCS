@@ -1,5 +1,7 @@
 ﻿using FINTCS.Areas.Members.Models;
 using FINTCS.Data;
+using FINTCS.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace FINTCS.Repositories
@@ -13,115 +15,137 @@ namespace FINTCS.Repositories
             _db = db;
         }
 
-        // ================= SAFE GET BY ID =================
+        // ================= GET BY ID =================
         public async Task<Member?> GetByIdAsync(int id)
         {
-            var member = await _db.Members
-                .Where(x => x.Id == id)
-                .Select(x => new Member
-                {
-                    Id = x.Id,
-                    Memno = x.Memno ?? string.Empty,
-                    Name = x.Name ?? string.Empty,
-                    FatherName = x.FatherName ?? string.Empty,
-                    OfficeAddress = x.OfficeAddress ?? string.Empty,
-                    City = x.City ?? string.Empty,
-                    Phone = x.Phone ?? string.Empty,
-                    Branch = x.Branch ?? string.Empty,
-                    Designation = x.Designation ?? string.Empty,
-                    Mobile1 = x.Mobile1 ?? string.Empty,
-                    Mobile2 = x.Mobile2 ?? string.Empty,
-                    ResidenceAddress = x.ResidenceAddress ?? string.Empty,
-                    DOB = x.DOB,
-                    DOJSociety = x.DOJSociety,
-                    Email = x.Email ?? string.Empty,
-                    DOJ = x.DOJ,
-                    DOR = x.DOR,
-                    Nominee = x.Nominee ?? string.Empty,
-                    NomineeRelation = x.NomineeRelation ?? string.Empty,
-                    Share = x.Share ?? string.Empty,
-                    CD = x.CD ?? string.Empty,
-                    BankName = x.BankName ?? string.Empty,
-                    PayableAt = x.PayableAt ?? string.Empty,
-                    AccountNo = x.AccountNo ?? string.Empty,
-                    Status = x.Status ?? string.Empty,
-                    PhotoPath = x.PhotoPath ?? string.Empty,
-                    SignaturePath = x.SignaturePath ?? string.Empty,
-                    DeductionShare = x.DeductionShare,
-                    WithDrawl = x.WithDrawl,
-                    GLoanInstalment = x.GLoanInstalment,
-                    ELoanInstalment = x.ELoanInstalment
-                })
-                .FirstOrDefaultAsync();
+            var member = _db.Members
+    .FromSqlRaw("EXEC SP_GetMemberById @Id", new SqlParameter("@Id", id))
+    .AsEnumerable()        // <-- result ko IEnumerable pe le jao
+    .FirstOrDefault();
 
             return member;
         }
 
-        // ================= STEPWISE ADD/UPDATE =================
+        // ================= STEPWISE SAVE =================
         public async Task<int> AddOrUpdateStepAsync(Member model, int step)
         {
-            Member entity;
+            int memberId = model.Id;
 
-            if (model.Id == 0)
+            // ✅ FIRST INSERT IF NEW
+            if (memberId == 0)
             {
-                entity = new Member();
-                _db.Members.Add(entity);
-            }
-            else
-            {
-                entity = await _db.Members.FirstOrDefaultAsync(x => x.Id == model.Id)
-                         ?? throw new Exception("Member not found in database");
+                memberId = _db.Database
+                    .SqlQuery<int>($"EXEC SP_InsertMember")
+                    .AsEnumerable()
+                    .First();
             }
 
-            // ================= STEP 1 : GENERAL =================
+            // ================= STEP PARAMETERS =================
+            var prms = new List<SqlParameter>
+            {
+                new("@Id", memberId)
+            };
+
             if (step == 1)
             {
-                entity.Memno = model.Memno;
-                entity.Name = model.Name;
-                entity.FatherName = model.FatherName;
-                entity.OfficeAddress = model.OfficeAddress;
-                entity.City = model.City;
-                entity.Phone = model.Phone;
-                entity.Branch = model.Branch;
-                entity.Designation = model.Designation;
-                entity.Mobile1 = model.Mobile1;
-                entity.Mobile2 = model.Mobile2;
-                entity.ResidenceAddress = model.ResidenceAddress;
-                entity.DOB = model.DOB;
-                entity.DOJSociety = model.DOJSociety;
-                entity.Email = model.Email;
-                entity.DOJ = model.DOJ;
-                entity.DOR = model.DOR;
-                entity.Nominee = model.Nominee;
-                entity.NomineeRelation = model.NomineeRelation;
+                prms.AddRange(new[]
+                {
+                    new SqlParameter("@Memno", (object?)model.Memno ?? DBNull.Value),
+                    new SqlParameter("@Name", (object?)model.Name ?? DBNull.Value),
+                    new SqlParameter("@FatherName", (object?)model.FatherName ?? DBNull.Value),
+                    new SqlParameter("@OfficeAddress", (object?)model.OfficeAddress ?? DBNull.Value),
+                    new SqlParameter("@City", (object?)model.City ?? DBNull.Value),
+                    new SqlParameter("@Phone", (object?)model.Phone ?? DBNull.Value),
+                    new SqlParameter("@Branch", (object?)model.Branch ?? DBNull.Value),
+                    new SqlParameter("@Designation", (object?)model.Designation ?? DBNull.Value),
+                    new SqlParameter("@Mobile1", (object?)model.Mobile1 ?? DBNull.Value),
+                    new SqlParameter("@Mobile2", (object?)model.Mobile2 ?? DBNull.Value),
+                    new SqlParameter("@ResidenceAddress", (object?)model.ResidenceAddress ?? DBNull.Value),
+                    new SqlParameter("@DOB", (object?)model.DOB ?? DBNull.Value),
+                    new SqlParameter("@DOJSociety", (object?)model.DOJSociety ?? DBNull.Value),
+                    new SqlParameter("@Email", (object?)model.Email ?? DBNull.Value),
+                    new SqlParameter("@DOJ", (object?)model.DOJ ?? DBNull.Value),
+                    new SqlParameter("@DOR", (object?)model.DOR ?? DBNull.Value),
+                    new SqlParameter("@Nominee", (object?)model.Nominee ?? DBNull.Value),
+                    new SqlParameter("@NomineeRelation", (object?)model.NomineeRelation ?? DBNull.Value)
+                });
+
+                // ✅ EXECUTE STEP 1 SP
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"EXEC SP_UpdateMemberStep1 
+                        @Id=@Id, @Memno=@Memno, @Name=@Name, @FatherName=@FatherName, 
+                        @OfficeAddress=@OfficeAddress, @City=@City, @Phone=@Phone, @Branch=@Branch, 
+                        @Designation=@Designation, @Mobile1=@Mobile1, @Mobile2=@Mobile2, @ResidenceAddress=@ResidenceAddress, 
+                        @DOB=@DOB, @DOJSociety=@DOJSociety, @Email=@Email, @DOJ=@DOJ, @DOR=@DOR, 
+                        @Nominee=@Nominee, @NomineeRelation=@NomineeRelation", prms.ToArray());
             }
 
-            // ================= STEP 2 : PHOTO & OPENING BALANCE =================
             if (step == 2)
             {
-                entity.Share = model.Share;
-                entity.CD = model.CD;
-                entity.BankName = model.BankName;
-                entity.PayableAt = model.PayableAt;
-                entity.AccountNo = model.AccountNo;
+                prms.AddRange(new[]
+                {
+                    new SqlParameter("@Share", (object?)model.Share ?? DBNull.Value),
+                    new SqlParameter("@ShareType", (object?)model.ShareType ?? DBNull.Value),
+                    new SqlParameter("@CD", (object?)model.CD ?? DBNull.Value),
+                    new SqlParameter("@CDType", (object?)model.CDType ?? DBNull.Value),
+                    new SqlParameter("@BankName", (object?)model.BankName ?? DBNull.Value),
+                    new SqlParameter("@PayableAt", (object?)model.PayableAt ?? DBNull.Value),
+                    new SqlParameter("@AccountNo", (object?)model.AccountNo ?? DBNull.Value),
+                    new SqlParameter("@Status", (object?)model.Status ?? DBNull.Value),
+                    new SqlParameter("@Date", (object?)model.Date ?? DBNull.Value),
+                    new SqlParameter("@PhotoPath", (object?)model.PhotoPath ?? DBNull.Value),
+                    new SqlParameter("@SignaturePath", (object?)model.SignaturePath ?? DBNull.Value)
+                });
 
-                entity.PhotoPath = model.PhotoPath;
-                entity.SignaturePath = model.SignaturePath;
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"EXEC SP_UpdateMemberStep2 
+                        @Id=@Id, @Share=@Share, @ShareType=@ShareType, @CD=@CD, @CDType=@CDType,
+                        @BankName=@BankName, @PayableAt=@PayableAt, @AccountNo=@AccountNo,
+                        @Status=@Status, @Date=@Date, @PhotoPath=@PhotoPath, @SignaturePath=@SignaturePath",
+                    prms.ToArray());
             }
 
-            // ================= STEP 3 : MONTHLY DEDUCTION =================
             if (step == 3)
             {
-                entity.DeductionShare = model.DeductionShare;
-                entity.WithDrawl = model.WithDrawl;
-                entity.GLoanInstalment = model.GLoanInstalment;
-                entity.ELoanInstalment = model.ELoanInstalment;
+                prms.AddRange(new[]
+                {
+                    new SqlParameter("@DeductionShare", (object?)model.DeductionShare ?? DBNull.Value),
+                    new SqlParameter("@WithDrawl", (object?)model.WithDrawl ?? DBNull.Value),
+                    new SqlParameter("@GLoanInstalment", (object?)model.GLoanInstalment ?? DBNull.Value),
+                    new SqlParameter("@ELoanInstalment", (object?)model.ELoanInstalment ?? DBNull.Value)
+                });
+
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"EXEC SP_UpdateMemberStep3 
+                        @Id=@Id, @DeductionShare=@DeductionShare, @WithDrawl=@WithDrawl, 
+                        @GLoanInstalment=@GLoanInstalment, @ELoanInstalment=@ELoanInstalment",
+                    prms.ToArray());
             }
 
-            await _db.SaveChangesAsync();
-            return entity.Id;
+            return memberId;
         }
+
+        // ================= DROPDOWNS =================
+        public async Task<List<TBLDAT>> GetBranchesAsync()
+        {
+            return await _db.TblDat
+                .FromSqlRaw("EXEC SP_GetBranches")
+                .ToListAsync();
+        }
+
+        public async Task<List<TBLDAT>> GetDesignationsAsync()
+        {
+            return await _db.TblDat
+                .FromSqlRaw("EXEC SP_GetDesignations")
+                .ToListAsync();
+        }
+
+        public async Task<List<TBLDAT>> GetNomineeRelationsAsync()
+        {
+            return await _db.TblDat
+                .FromSqlRaw("EXEC SP_GetNomineeRelations")
+                .ToListAsync();
+        }
+
     }
-
 }
-

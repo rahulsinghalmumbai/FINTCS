@@ -1,4 +1,5 @@
 ﻿using FINTCS.Areas.Members.Models;
+using FINTCS.Models;
 
 namespace FINTCS.Repositories
 {
@@ -6,5 +7,8 @@ namespace FINTCS.Repositories
     {
         Task<Member?> GetByIdAsync(int id);
         Task<int> AddOrUpdateStepAsync(Member model, int step);
+        Task<List<TBLDAT>> GetBranchesAsync();        // DTBLSERN = 3
+        Task<List<TBLDAT>> GetDesignationsAsync();   // DTBLSERN = 1
+        Task<List<TBLDAT>> GetNomineeRelationsAsync(); // DTBLSERN = 4
     }
 }

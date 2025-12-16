@@ -1,6 +1,8 @@
 ﻿using FINTCS.Areas.Members.Models;
 
 using FINTCS.Models;
+using FINTCS.DTOs;
+
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -17,5 +19,9 @@ namespace FINTCS.Data
         public DbSet<TBLDAT> TblDat { get; set; }
         public DbSet<Member> Members { get; set; }
 
+        public DbSet<GroupMaster> GroupMaster { get; set; }
+        public DbSet<LEDGERAC> LEDGERAC { get; set; }
+
+        public DbSet<LedgerListDto> LedgerListDto { get; set; }
     }
 }

@@ -5,76 +5,50 @@ using Microsoft.AspNetCore.Mvc;
 
 public class SocietyController : Controller
 {
-    private readonly IGenericRepository<Society> _societyRepo;
-    private readonly IGenericRepository<LoanMaster> _loanRepo;
+    private readonly IGenericService<Society> _societyRepo;
+    private readonly IGenericService<LoanMaster> _loanRepo;
 
-    public SocietyController(
-        IGenericRepository<Society> societyRepo,
-        IGenericRepository<LoanMaster> loanRepo)
+    public SocietyController(IGenericService<Society> societyRepo,
+                               IGenericService<LoanMaster> loanRepo)
     {
         _societyRepo = societyRepo;
         _loanRepo = loanRepo;
     }
 
-    // GET: Load Form
+    [HttpGet]
     public async Task<IActionResult> Upsert()
     {
         var society = await _societyRepo.GetFirstAsync();
-
         var vm = new SocietyLoanVM
         {
-            Society = society ?? new Society()
+            Society = society ?? new Society(),
+            LoanMasters = society != null ? await _loanRepo.GetListAsync(x => x.SocietyId == society.Id) : new List<LoanMaster>()
         };
-
-        if (society != null)
-        {
-            vm.LoanMasters = await _loanRepo.GetListAsync(x => x.SocietyId == society.Id);
-        }
-
-        return View(vm);
+        return View(vm); // ✅ View return possible
     }
 
-    // POST: Insert / Update
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upsert(SocietyLoanVM vm)
     {
-        if (!ModelState.IsValid)
-            return View(vm);
+        if (!ModelState.IsValid) return View(vm);
 
         bool isNew = vm.Society.Id == 0;
 
-        // Save / Update Society
-        if (isNew)
-            await _societyRepo.AddAsync(vm.Society);
-        else
-            _societyRepo.Update(vm.Society);
+        // SP call via repository
+        var newSocId = await _societyRepo.UpsertSocietyAsync(vm.Society);
+        vm.Society.Id = newSocId;
 
-        await _societyRepo.SaveAsync();
-
-        // Save / Update Loan List
         if (vm.LoanList != null && vm.LoanList.Count > 0)
         {
             foreach (var loan in vm.LoanList)
             {
                 loan.SocietyId = vm.Society.Id;
-
-                if (loan.LoanMasterId == 0)
-                {
-                    // New Loan → Add
-                    await _loanRepo.AddAsync(loan);
-                }
-                else
-                {
-                    // Existing Loan → Update
-                    _loanRepo.Update(loan);
-                }
+                await _loanRepo.UpsertLoanMasterAsync(loan);
             }
-
-            await _loanRepo.SaveAsync();
         }
 
         TempData["msg"] = isNew ? "Saved Successfully ✔" : "Updated Successfully ✔";
-
         return RedirectToAction("Upsert");
     }
 }

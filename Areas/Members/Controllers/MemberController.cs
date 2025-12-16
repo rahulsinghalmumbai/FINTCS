@@ -16,6 +16,7 @@ namespace FINTCS.Areas.Members.Controllers
             _env = env;
         }
 
+        // ✅ GET
         public async Task<IActionResult> Index(int? id, int step = 1)
         {
             Member model = new Member();
@@ -25,56 +26,97 @@ namespace FINTCS.Areas.Members.Controllers
                 model = await _memberService.GetByIdAsync(id.Value) ?? new Member();
             }
 
-            ViewBag.Step = step; // ✅ To retain tab after post
+            // ✅ DROPDOWNS
+            ViewBag.BranchList = await _memberService.GetBranchesAsync();
+            ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
+            ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
+
+            ViewBag.Step = step;
             return View(model);
         }
 
+        // ✅ POST
         [HttpPost]
         public async Task<IActionResult> Index(Member model, int step, IFormFile? PhotoFile, IFormFile? SignatureFile)
         {
+            // ✅ STEP 1 VALIDATION
+            if (step == 1)
+            {
+                if (!ModelState.IsValid)
+                {
+                    ViewBag.BranchList = await _memberService.GetBranchesAsync();
+                    ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
+                    ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
+
+                    ViewBag.Step = 1;
+                    return View(model);
+                }
+            }
+
+            // ✅ STEP 2 FILE UPLOAD + NAME SAFE FIX
             if (step == 2)
             {
-                // Photo upload
+                // ✅ PHOTO
                 if (PhotoFile != null)
                 {
-                    string photoFolder = @"D:\MemberPhotos";
-                    Directory.CreateDirectory(photoFolder);
+                    string folder = Path.Combine(_env.WebRootPath, "MemberPhotos");
+                    Directory.CreateDirectory(folder);
 
-                    string photoFileName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
-                    string photoPath = Path.Combine(photoFolder, photoFileName);
+                    string fileName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
+                    string path = Path.Combine(folder, fileName);
 
-                    using (var stream = new FileStream(photoPath, FileMode.Create))
-                    {
-                        await PhotoFile.CopyToAsync(stream);
-                    }
+                    using var stream = new FileStream(path, FileMode.Create);
+                    await PhotoFile.CopyToAsync(stream);
 
-                    // ✅ WEB URL store karo — FILE PATH nahi
-                    model.PhotoPath = "/MemberPhotos/" + photoFileName;
-
+                    model.PhotoPath = "/MemberPhotos/" + fileName;
+                   /* model.PhotoName = PhotoFile.FileName; */// ✅ NAME SAFE
                 }
 
-                // Signature upload
+                // ✅ SIGNATURE
                 if (SignatureFile != null)
                 {
-                    string signFolder = @"D:\MemberSignatures";
-                    Directory.CreateDirectory(signFolder);
+                    string folder = Path.Combine(_env.WebRootPath, "MemberSignatures");
+                    Directory.CreateDirectory(folder);
 
-                    string signFileName = Guid.NewGuid() + Path.GetExtension(SignatureFile.FileName);
-                    string signPath = Path.Combine(signFolder, signFileName);
+                    string fileName = Guid.NewGuid() + Path.GetExtension(SignatureFile.FileName);
+                    string path = Path.Combine(folder, fileName);
 
-                    using (var stream = new FileStream(signPath, FileMode.Create))
-                    {
-                        await SignatureFile.CopyToAsync(stream);
-                    }
+                    using var stream = new FileStream(path, FileMode.Create);
+                    await SignatureFile.CopyToAsync(stream);
 
-                    // ✅ WEB URL store karo — FILE PATH nahi
-                    model.SignaturePath = "/MemberSignatures/" + signFileName;
+                    model.SignaturePath = "/MemberSignatures/" + fileName;
+                   /* model.SignatureName = SignatureFile.FileName; */// ✅ NAME SAFE
+                }
+
+                // ✅ FILE REQUIRED VALIDATION
+                if (string.IsNullOrEmpty(model.PhotoPath) || string.IsNullOrEmpty(model.SignaturePath))
+                {
+                    TempData["Error"] = "Photo & Signature Required";
+
+                    ViewBag.BranchList = await _memberService.GetBranchesAsync();
+                    ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
+                    ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
+
+                    ViewBag.Step = 2;
+                    return View(model); // ✅ POPUP OPEN HOGA, TAB CHANGE NAHI
                 }
             }
 
             int memberId = await _memberService.AddOrUpdateStepAsync(model, step);
 
-            // Redirect to next step
+            // ✅ STEP 3 PAR HI RUKNA HAI — STEP 4 PAR NAHI JAANA
+            if (step == 3)
+            {
+                ViewBag.BranchList = await _memberService.GetBranchesAsync();
+                ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
+                ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
+
+                ViewBag.Step = 3;
+                TempData["Success"] = "Step 3 Saved Successfully";
+                return View(model); // ✅ YAHI RUK GAYA
+            }
+
+            // ✅ NORMAL FLOW (Step 1 → 2 → 3)
             return RedirectToAction("Index", new { id = memberId, step = step + 1 });
         }
     }

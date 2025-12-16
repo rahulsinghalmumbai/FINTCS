@@ -1,0 +1,228 @@
+﻿@model List<GroupMaster>
+
+<input type="hidden" id="hdnEditId" value="0" />
+
+<style>
+    .gm-card {
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        border: none;
+    }
+
+    .gm-title {
+        font-weight: 600;
+    }
+
+    .gm-table th {
+        background: #f8f9fa;
+        font-size: 13px;
+    }
+
+    .gm-table td {
+        font-size: 14px;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+
+        <!-- ✅ LEFT FORM -->
+        <div class="col-md-5">
+            <div class="card gm-card p-3">
+
+                <h5 class="gm-title mb-3">Group Master</h5>
+
+                <div class="mb-2">
+                    <label>Name</label>
+                    <input type="text" id="txtName" class="form-control" />
+                </div>
+
+               
+
+                <div class="mb-2">
+                    <label>Under</label>
+                    <input type="text" id="txtUnder" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label>Nature of Group</label>
+                    <select id="ddlNature" class="form-control">
+                        <option value="">-- Select Nature --</option>
+                        <option>Assets</option>
+                        <option>Expenses</option>
+                        <option>Income</option>
+                        <option>Liabilities</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label>List Of Group</label>
+                    <select id="ddlGroup" class="form-control" size="10">
+
+                        @foreach (var item in Model)
+                        {
+                            <option value="@item.Id" data-nature="@item.NatureOfGroup">
+                                @item.GroupName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button id="btnSave" class="btn btn-success">Save</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ✅ RIGHT GRID -->
+        <div class="col-md-7">
+            <div class="card gm-card p-3">
+                <h5>Saved Groups</h5>
+
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            @* <th>DCode</th> *@
+                            <th>Nature</th>
+                           @*  <th>Counter</th> *@
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in Model)
+                        {
+                            <tr class="editRow"
+                                data-id="@g.Id"
+                                data-name="@g.GroupName"
+                                data-under="@g.UnderGroupId"
+                                data-nature="@g.NatureOfGroup">
+                                <td>@g.GroupName</td>
+                               @*  <td>@g.DCode</td> *@
+                                <td>@g.NatureOfGroup</td>
+                              @*   <td>@g.LedgerCounter</td> *@
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+
+        // ✅ Under + Nature Autofill
+        $("#ddlGroup").change(function () {
+
+            var text = $("#ddlGroup option:selected").text();
+            var nature = $("#ddlGroup option:selected").data("nature");
+
+            $("#txtUnder").val(text);
+
+            if (nature) {
+                $("#ddlNature").val(nature).prop("disabled", true);
+            } else {
+                $("#ddlNature").val("").prop("disabled", false);
+            }
+        });
+
+        // ✅ Row Click → EDIT MODE
+        // ✅ Primary Block + Current Editing Group Hide from Dropdown
+        $(document).on("click", ".editRow", function () {
+
+            var id = $(this).data("id");
+            var name = $(this).data("name");
+
+            // ❌ Primary edit block
+            if (name.toLowerCase() === "primary") {
+                alert("❌ 'Primary' Group Can Not Be Edited!");
+                return;
+            }
+
+            // ✅ Pehle sab dropdown options wapas dikhao
+            $("#ddlGroup option").show();
+
+            // ✅ Current editing group ko dropdown se hide karo
+            $("#ddlGroup option[value='" + id + "']").hide();
+
+            $("#hdnEditId").val(id);
+            $("#txtName").val(name);
+            $("#ddlGroup").val($(this).data("under")).trigger("change");
+            $("#ddlNature").val($(this).data("nature"));
+        });
+
+        // ✅ Save (ADD + EDIT)
+        $("#btnSave").click(function () {
+
+            var id = $("#hdnEditId").val();
+            var name = $("#txtName").val().trim();
+            var under = $("#ddlGroup").val();
+            var nature = $("#ddlNature").val();
+
+            if (name === "" || nature === "") {
+                alert("All fields required");
+                return;
+            }
+
+            // ✅ Duplicate Name Check (Client Side)
+            var isDuplicate = false;
+            var currentId = $("#hdnEditId").val();
+            var newName = name.toLowerCase();
+
+            $(".editRow").each(function () {
+                var existingName = $(this).data("name").toString().trim().toLowerCase();
+                var existingId = $(this).data("id").toString();
+
+                if (existingName === newName && existingId !== currentId) {
+                    isDuplicate = true;
+                    return false;
+                }
+            });
+
+            if (isDuplicate) {
+                alert("❌ Duplicate Name is Not Allowed");
+                return;
+            }
+
+            // ✅ Primary Protection on Save
+            if (newName === "primary" && id != "0") {
+                alert("❌ 'Primary' Group ko update karna allowed nahi hai!");
+                return;
+            }
+
+            $.ajax({
+                url: "/Account/SaveGroup",
+                type: "POST",
+                data: {
+                    id: id,
+                    name: name,
+                    underGroupId: under,
+                    nature: nature
+                },
+                success: function (res) {
+
+                    if (res === "Duplicate") {
+                        alert("❌ Duplicate Name is Not Allowed");
+                    }
+                    else if (res === "PrimaryNotEditable") {
+                        alert("❌ 'Primary' Group Edit Karna Allowed Nahi Hai!");
+                    }
+                    else {
+                        alert("✅ " + res);
+
+                        // ✅ Dropdown normal restore
+                        $("#ddlGroup option").show();
+
+                        location.reload();
+                    }
+                }
+            });
+
+        });
+
+    </script>
+}
