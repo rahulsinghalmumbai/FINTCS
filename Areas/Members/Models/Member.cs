@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FINTCS.Areas.Members.ViewModel;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace FINTCS.Areas.Members.Models
@@ -40,9 +41,9 @@ namespace FINTCS.Areas.Members.Models
 
         public string? Nominee { get; set; }
         public string? NomineeRelation { get; set; }
-        public string? Share { get; set; }
+        public decimal? Share { get; set; }
         public string? ShareType { get; set; }
-        public string? CD { get; set; }
+        public decimal? CD { get; set; }
         public string? CDType { get; set; }
         public string? BankName { get; set; }
         public string? PayableAt { get; set; }
@@ -55,5 +56,6 @@ namespace FINTCS.Areas.Members.Models
         public decimal? WithDrawl { get; set; }
         public decimal? GLoanInstalment { get; set; }
         public decimal? ELoanInstalment { get; set; }
+        public List<LoanAmountVM> ?LoanAmounts { get; set; } = new();
     }
 }

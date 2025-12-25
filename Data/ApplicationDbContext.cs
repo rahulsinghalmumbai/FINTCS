@@ -1,8 +1,7 @@
 ﻿using FINTCS.Areas.Members.Models;
-
-using FINTCS.Models;
 using FINTCS.DTOs;
-
+using FINTCS.Models;
+using FINTCS.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -23,5 +22,9 @@ namespace FINTCS.Data
         public DbSet<LEDGERAC> LEDGERAC { get; set; }
 
         public DbSet<LedgerListDto> LedgerListDto { get; set; }
+
+        public DbSet<LoanMasterMember> LoanMasterMember { get; set; }
+        public DbSet<MastVoc> Mast_Voc { get; set; }
+        public DbSet<Voucher> Voucher { get; set; }
     }
 }

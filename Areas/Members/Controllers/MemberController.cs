@@ -19,77 +19,99 @@ namespace FINTCS.Areas.Members.Controllers
         // ✅ GET
         public async Task<IActionResult> Index(int? id, int step = 1)
         {
-            Member model = new Member();
+            Member model;
 
             if (id.HasValue && id > 0)
             {
-                model = await _memberService.GetByIdAsync(id.Value) ?? new Member();
+                model = await _memberService.GetByIdAsync(id.Value);
+                model.LoanAmounts = await _memberService.GetLoanMasterAsync(id.Value);
+            }
+            else
+            {
+                model = new Member();
+                model.LoanAmounts = await _memberService.GetLoanMasterAsync(0);
             }
 
-            // ✅ DROPDOWNS
             ViewBag.BranchList = await _memberService.GetBranchesAsync();
             ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
             ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
-
             ViewBag.Step = step;
+
             return View(model);
         }
 
+
+
         // ✅ POST
+
         [HttpPost]
-        public async Task<IActionResult> Index(Member model, int step, IFormFile? PhotoFile, IFormFile? SignatureFile)
+        public async Task<IActionResult> Index(
+    Member model,
+    int step,
+    IFormFile? PhotoFile,
+    IFormFile? SignatureFile)
         {
-            // ✅ STEP 1 VALIDATION
+            int memberId = model.Id;
+
+            /* ================= STEP 1 ================= */
             if (step == 1)
             {
-                if (!ModelState.IsValid)
-                {
-                    ViewBag.BranchList = await _memberService.GetBranchesAsync();
-                    ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
-                    ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
+                memberId = await _memberService.AddOrUpdateStepAsync(model, step);
 
-                    ViewBag.Step = 1;
-                    return View(model);
+                if (model.Id == 0)
+                {
+                    await _memberService.GenerateMemberSpecificLedgersAsync(
+                        memberId, model.Memno, model.Name);
+                }
+                else
+                {
+                    await _memberService.UpdateMemberLedgerNamesAsync(
+                        memberId, model.Memno, model.Name);
                 }
             }
 
-            // ✅ STEP 2 FILE UPLOAD + NAME SAFE FIX
+            /* ================= STEP 2 ================= */
             if (step == 2)
             {
-                // ✅ PHOTO
-                if (PhotoFile != null)
+                model.Id = memberId;
+
+                // ✅ PHOTO UPLOAD
+                if (PhotoFile != null && PhotoFile.Length > 0)
                 {
-                    string folder = Path.Combine(_env.WebRootPath, "MemberPhotos");
-                    Directory.CreateDirectory(folder);
+                    string photoFolder = Path.Combine(_env.WebRootPath, "MemberPhotos");
+                    Directory.CreateDirectory(photoFolder);
 
-                    string fileName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
-                    string path = Path.Combine(folder, fileName);
+                    string photoName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
+                    string photoPath = Path.Combine(photoFolder, photoName);
 
-                    using var stream = new FileStream(path, FileMode.Create);
-                    await PhotoFile.CopyToAsync(stream);
+                    using (var stream = new FileStream(photoPath, FileMode.Create))
+                    {
+                        await PhotoFile.CopyToAsync(stream);
+                    }
 
-                    model.PhotoPath = "/MemberPhotos/" + fileName;
-                   /* model.PhotoName = PhotoFile.FileName; */// ✅ NAME SAFE
+                    model.PhotoPath = "/MemberPhotos/" + photoName;
                 }
 
-                // ✅ SIGNATURE
-                if (SignatureFile != null)
+                // ✅ SIGNATURE UPLOAD
+                if (SignatureFile != null && SignatureFile.Length > 0)
                 {
-                    string folder = Path.Combine(_env.WebRootPath, "MemberSignatures");
-                    Directory.CreateDirectory(folder);
+                    string signFolder = Path.Combine(_env.WebRootPath, "MemberSignatures");
+                    Directory.CreateDirectory(signFolder);
 
-                    string fileName = Guid.NewGuid() + Path.GetExtension(SignatureFile.FileName);
-                    string path = Path.Combine(folder, fileName);
+                    string signName = Guid.NewGuid() + Path.GetExtension(SignatureFile.FileName);
+                    string signPath = Path.Combine(signFolder, signName);
 
-                    using var stream = new FileStream(path, FileMode.Create);
-                    await SignatureFile.CopyToAsync(stream);
+                    using (var stream = new FileStream(signPath, FileMode.Create))
+                    {
+                        await SignatureFile.CopyToAsync(stream);
+                    }
 
-                    model.SignaturePath = "/MemberSignatures/" + fileName;
-                   /* model.SignatureName = SignatureFile.FileName; */// ✅ NAME SAFE
+                    model.SignaturePath = "/MemberSignatures/" + signName;
                 }
 
-                // ✅ FILE REQUIRED VALIDATION
-                if (string.IsNullOrEmpty(model.PhotoPath) || string.IsNullOrEmpty(model.SignaturePath))
+                // ❌ REQUIRED FILE CHECK
+                if (string.IsNullOrEmpty(model.PhotoPath) ||
+                    string.IsNullOrEmpty(model.SignaturePath))
                 {
                     TempData["Error"] = "Photo & Signature Required";
 
@@ -98,26 +120,55 @@ namespace FINTCS.Areas.Members.Controllers
                     ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
 
                     ViewBag.Step = 2;
-                    return View(model); // ✅ POPUP OPEN HOGA, TAB CHANGE NAHI
+                    return View(model);
                 }
+
+                // ✅ NOW SAVE STEP-2 DATA WITH FILE PATH
+                await _memberService.AddOrUpdateStepAsync(model, step);
             }
 
-            int memberId = await _memberService.AddOrUpdateStepAsync(model, step);
-
-            // ✅ STEP 3 PAR HI RUKNA HAI — STEP 4 PAR NAHI JAANA
+            /* ================= STEP 3 ================= */
             if (step == 3)
             {
+                model.Id = memberId;
+
+                await _memberService.AddOrUpdateStepAsync(model, step);
+
+                await _memberService.SaveLoanAmountsAsync(
+                    model.Id,
+                    model.LoanAmounts
+                );
+
+                // 🔥 Reload loans after save
+                model.LoanAmounts = await _memberService.GetLoanMasterAsync(model.Id);
+
                 ViewBag.BranchList = await _memberService.GetBranchesAsync();
                 ViewBag.DesignationList = await _memberService.GetDesignationsAsync();
                 ViewBag.NomineeRelationList = await _memberService.GetNomineeRelationsAsync();
-
                 ViewBag.Step = 3;
-                TempData["Success"] = "Step 3 Saved Successfully";
-                return View(model); // ✅ YAHI RUK GAYA
+
+                TempData["Success"] = "Member saved successfully";
+                return View(model);
             }
 
-            // ✅ NORMAL FLOW (Step 1 → 2 → 3)
+
+
             return RedirectToAction("Index", new { id = memberId, step = step + 1 });
         }
+
+        [HttpGet]
+        public JsonResult IsMemNoExists(string memno, int id)
+        {
+            var exists = _memberService.IsMemNoExists(memno, id);
+            return Json(exists);
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetMembers(string search = "")
+        {
+            var data = await _memberService.GetMembersAsync(search);
+            return Json(data);
+        }
+
+        
     }
 }
