@@ -1,8 +1,10 @@
 ﻿using FINTCS.Areas.Members.Models;
+using FINTCS.Areas.Members.ViewModel;
 using FINTCS.Data;
 using FINTCS.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace FINTCS.Repositories
 {
@@ -146,6 +148,181 @@ namespace FINTCS.Repositories
                 .FromSqlRaw("EXEC SP_GetNomineeRelations")
                 .ToListAsync();
         }
+        public async Task GenerateMemberSpecificLedgersAsync(
+    int memberId,
+    string memNo,
+    string memberName)
+        {
+            // 🔹 1. LEDGERAC se MemSpecific ledgers (template)
+            var memberSpecificLedgers = await _db.LEDGERAC
+                .Where(l => l.MemSpecific == true)
+                .Select(l => new
+                {
+                    l.GroupId,
+                    LedgerSuffix = l.ledger.Substring(l.ledger.IndexOf(")") + 1) // -test1
+                })
+                .Distinct()
+                .ToListAsync();
+
+            if (!memberSpecificLedgers.Any())
+                return;
+
+            // 🔹 2. GroupMaster data
+            var groupIds = memberSpecificLedgers.Select(x => x.GroupId).Distinct().ToList();
+
+            var groups = await _db.GroupMaster
+                .Where(g => groupIds.Contains(g.Id))
+                .ToListAsync();
+
+            foreach (var group in groups)
+            {
+                // 🔹 3. LedgerCounter (NO +1 BUG)
+                int ledgerCounter = group.LedgerCount ?? 1;
+
+                // 🔹 4. Correct suffix (test1 / test2)
+                var suffix = memberSpecificLedgers
+                    .First(x => x.GroupId == group.Id)
+                    .LedgerSuffix;
+
+                string ledgerCode = $"{group.DCode}B{ledgerCounter}";
+                string ledgerName = $"{memNo}({memberName}){suffix}";
+
+                var prms = new[]
+                {
+            new SqlParameter("@LEDGERCODE", ledgerCode),
+            new SqlParameter("@ledger", ledgerName),
+
+            new SqlParameter
+            {
+                ParameterName = "@OpeningBalance",
+                SqlDbType = SqlDbType.Decimal,
+                Precision = 18,
+                Scale = 2,
+                Value = 0m
+            },
+
+            new SqlParameter("@drcr", 1),
+            new SqlParameter("@CreatedOn", DateTime.Now),
+            new SqlParameter("@GroupId", group.Id),
+            new SqlParameter("@MemSpecific", 1),
+            new SqlParameter("@MemberId", memberId)
+        };
+
+                // 🔹 5. Insert Ledger
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"EXEC SP_InsertMemberLedger 
+              @LEDGERCODE,@ledger,@OpeningBalance,@drcr,@CreatedOn,@GroupId,@MemSpecific,@MemberId",
+                    prms
+                );
+
+                // 🔹 6. Update counter AFTER insert
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"UPDATE GroupMaster 
+              SET LedgerCount = @NextCounter 
+              WHERE Id = @GroupId",
+                    new SqlParameter("@NextCounter", ledgerCounter + 1),
+                    new SqlParameter("@GroupId", group.Id)
+                );
+            }
+        }
+
+
+        public async Task UpdateMemberLedgerNamesAsync(
+    int memberId,
+    string memNo,
+    string memberName)
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                "EXEC SP_UpdateLedgerNameByMember @MemberId,@MemNo,@MemberName",
+                new SqlParameter("@MemberId", memberId),
+                new SqlParameter("@MemNo", memNo),
+                new SqlParameter("@MemberName", memberName)
+            );
+        }
+       
+
+            public bool IsMemNoExists(string memno, int id)
+            {
+                var memnoParam = new SqlParameter("@MemNo", memno);
+                var idParam = new SqlParameter("@Id", id);
+
+                var result = _db.Database
+                    .SqlQueryRaw<int>("EXEC SP_IsMemNoExists @MemNo, @Id", memnoParam, idParam)
+                    .AsEnumerable()
+                    .FirstOrDefault();
+
+                return result == 1;
+            }
+        public async Task<List<LoanAmountVM>> GetLoanMasterAsync(int memberId)
+        {
+            var loans = await _db.LoanMasters
+                .Select(l => new LoanAmountVM
+                {
+                    LoanId = l.LoanMasterId,
+                    LoanName = l.LoanName,
+                    Amt = memberId > 0
+                        ? _db.LoanMasterMember
+                            .Where(m => m.MemberId == memberId && m.LoanId == l.LoanMasterId)
+                            .Select(x => x.Amt)
+                            .FirstOrDefault()
+                        : null
+                })
+                .ToListAsync();
+
+            return loans;
+        }
+
+
+        public async Task SaveLoanAmountsAsync(int memberId, List<LoanAmountVM> loans)
+        {
+            // DataTable banega (Table Valued Parameter ke liye)
+            DataTable dt = new DataTable();
+            dt.Columns.Add("LoanId", typeof(int));
+            dt.Columns.Add("Amt", typeof(decimal));
+
+            foreach (var item in loans)
+            {
+                if (item.Amt.HasValue && item.Amt > 0)
+                {
+                    dt.Rows.Add(item.LoanId, item.Amt.Value);
+                }
+            }
+
+            var memberParam = new SqlParameter("@MemberId", memberId);
+
+            var tvpParam = new SqlParameter("@LoanAmounts", dt)
+            {
+                SqlDbType = SqlDbType.Structured,
+                TypeName = "dbo.LoanAmountType"
+            };
+
+            await _db.Database.ExecuteSqlRawAsync(
+                "EXEC SP_SaveLoanAmounts @MemberId, @LoanAmounts",
+                memberParam,
+                tvpParam
+            );
+        }
+
+        public async Task<List<MemberSearchVM>> GetMembersAsync(string search)
+        {
+            return await _db.Members
+                .Where(x => search == "" ||
+                            x.Name.Contains(search) ||
+                            x.Memno.Contains(search))
+                .Select(x => new MemberSearchVM
+                {
+                    Id = x.Id,
+                    Memno = x.Memno,
+                    Name = x.Name
+                })
+                .ToListAsync();
+        }
+
+        
+      
 
     }
+
+
 }
+

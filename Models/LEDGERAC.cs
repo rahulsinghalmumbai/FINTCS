@@ -7,7 +7,11 @@
     public int? drcr { get; set; }
     public DateTime CreatedOn { get; set; }
     public int GroupId { get; set; }
+    public bool? MemSpecific { get; set; }
+    public int? MemberId { get; set; }
 
-   
-  
+    public bool? Bank { get; set; }
+
+
+
 }

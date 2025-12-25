@@ -4,47 +4,132 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - FINTCS</title>
-    <script type="importmap"></script>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/FINTCS.styles.css" asp-append-version="true" />
+
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            background: #212529;
+            overflow-y: auto;
+        }
+
+            .sidebar a {
+                color: #adb5bd;
+                text-decoration: none;
+                padding: 10px 15px;
+                display: block;
+            }
+
+                .sidebar a:hover,
+                .sidebar a.active {
+                    background: #343a40;
+                    color: #fff;
+                }
+
+        .submenu a {
+            padding-left: 35px;
+            font-size: 14px;
+        }
+
+        .content-area {
+            flex: 1;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+    </style>
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">FINTCS</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+    <div class="d-flex">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <h5 class="text-white text-center py-3 border-bottom">FINTCS</h5>
+
+            <a asp-route-area="" asp-controller="Home" asp-action="Index"
+               class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                📊 Dashboard
+            </a>
+
+            <!-- Society -->
+            <a data-bs-toggle="collapse" href="#societyMenu">
+                🏢 Society
+            </a>
+            <div class="collapse submenu" id="societyMenu">
+                <a asp-route-area="" asp-controller="Society" asp-action="Upsert">Society</a>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+
+            <!-- Member -->
+            <a data-bs-toggle="collapse" href="#memberMenu">
+                👥 Members
+            </a>
+            <div class="collapse submenu" id="memberMenu">
+                <a asp-area="Members" asp-controller="Member" asp-action="Index">Member</a>
+            </div>
+
+            <!-- Dropdown -->
+            <a data-bs-toggle="collapse" href="#dropdownMenu">
+                ⬇️ Dropdown
+            </a>
+            <div class="collapse submenu" id="dropdownMenu">
+                <a asp-route-area="" asp-controller="Dropdown" asp-action="Index">Dropdown</a>
+            </div>
+
+            <!-- Account -->
+            <a data-bs-toggle="collapse" href="#accountMenu">
+                💼Account
+            </a>
+            <div class="collapse submenu" id="accountMenu">
+                <a asp-route-area="" asp-controller="Account" asp-action="Index">Group</a>
+                <a asp-route-area="" asp-controller="Ledger" asp-action="Index">Ledger</a>
+                <a asp-route-area="" asp-controller="Voucher" asp-action="add">Voucher</a>
+            </div>
+
+            <!-- Reports -->
+           @*  <a data-bs-toggle="collapse" href="#reportMenu">
+                📄 Reports
+            </a>
+            <div class="collapse submenu" id="reportMenu">
+                <a href="#">Ledger Report</a>
+                <a href="#">Stock Report</a>
+            </div>
+
+            <hr class="text-secondary" />
+
+            <a asp-controller="Account" asp-action="Logout">
+                🚪 Logout
+            </a> *@
+        </aside>
+
+        <!-- RIGHT CONTENT -->
+        <div class="content-area">
+
+            <!-- TOP NAVBAR -->
+            <nav class="navbar navbar-light bg-white border-bottom px-3">
+                <span class="navbar-text">
+                    Welcome, @User.Identity?.Name
+                </span>
+            </nav>
+
+            <!-- MAIN CONTENT -->
+            <main class="p-4">
+                @RenderBody()
+            </main>
+
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - FINTCS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

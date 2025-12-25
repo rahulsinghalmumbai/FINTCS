@@ -1,0 +1,12 @@
+﻿@model List<FINTCS.ViewModels.EditVoucherRowVM>
+
+@foreach (var x in Model)
+{
+    <tr style="cursor:pointer"
+        onclick="openVoucherForEdit(@x.KeyNo)">
+        <td>@x.SerialNo</td>
+        <td>@x.Date.ToString("dd-MM-yyyy")</td>
+        <td>@x.Ledger</td>
+        <td class="text-end">@x.Amount</td>
+    </tr>
+}

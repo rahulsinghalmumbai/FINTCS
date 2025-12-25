@@ -21,6 +21,53 @@
     .gm-table td {
         font-size: 14px;
     }
+
+    /* Popup Styles */
+    #groupPopup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        right: 200px; /* 🔥 right side */
+        transform: translateY(-50%);
+        width: 500px;
+        max-height: 400px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 30px rgba(0,0,0,.4);
+        padding: 20px;
+        z-index: 9999;
+        overflow-y: auto;
+    }
+
+        #groupPopup table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #groupPopup th, #groupPopup td {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        #groupPopup input[type="text"] {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 6px 8px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+        }
+
+        #groupPopup .closeBtn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 6px 0;
+            border: none;
+            background: #444;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }
 </style>
 
 <div class="container mt-4">
@@ -37,8 +84,6 @@
                     <input type="text" id="txtName" class="form-control" />
                 </div>
 
-               
-
                 <div class="mb-2">
                     <label>Under</label>
                     <input type="text" id="txtUnder" class="form-control" readonly />
@@ -54,10 +99,10 @@
                         <option>Liabilities</option>
                     </select>
                 </div>
+
                 <div class="mb-2">
                     <label>List Of Group</label>
                     <select id="ddlGroup" class="form-control" size="10">
-
                         @foreach (var item in Model)
                         {
                             <option value="@item.Id" data-nature="@item.NatureOfGroup">
@@ -66,161 +111,184 @@
                         }
                     </select>
                 </div>
-
                 <div class="d-flex gap-2">
                     <button id="btnSave" class="btn btn-success">Save</button>
+                    <button type="button" id="btnClear" class="btn btn-primary">Clear</button>
+                    <button type="button" id="btnShowGroups" class="btn btn-secondary">Edit Groups</button>
                 </div>
+                
 
             </div>
         </div>
 
-        <!-- ✅ RIGHT GRID -->
-        <div class="col-md-7">
-            <div class="card gm-card p-3">
-                <h5>Saved Groups</h5>
-
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            @* <th>DCode</th> *@
-                            <th>Nature</th>
-                           @*  <th>Counter</th> *@
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var g in Model)
-                        {
-                            <tr class="editRow"
-                                data-id="@g.Id"
-                                data-name="@g.GroupName"
-                                data-under="@g.UnderGroupId"
-                                data-nature="@g.NatureOfGroup">
-                                <td>@g.GroupName</td>
-                               @*  <td>@g.DCode</td> *@
-                                <td>@g.NatureOfGroup</td>
-                              @*   <td>@g.LedgerCounter</td> *@
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-
-            </div>
-        </div>
+        <!-- ✅ RIGHT GRID REMOVED -->
+        <!-- Saved Groups will open in popup now -->
 
     </div>
+</div>
+
+<!-- ✅ POPUP -->
+<div id="groupPopup">
+    <h5 style="text-align:center">Edit Groups</h5>
+    <input type="text" id="groupSearch" placeholder="Search Group..." />
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Nature</th>
+            </tr>
+        </thead>
+        <tbody id="popupGroupBody">
+            @foreach (var g in Model)
+            {
+                <tr class="popupRow"
+                    data-id="@g.Id"
+                    data-name="@g.GroupName"
+                    data-under="@g.UnderGroupId"
+                    data-nature="@g.NatureOfGroup">
+                    <td>@g.GroupName</td>
+                    <td>@g.NatureOfGroup</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button class="closeBtn" onclick="$('#groupPopup').hide();">Close</button>
 </div>
 
 @section Scripts {
 
     <script>
+        $(document).ready(function () {
 
-        // ✅ Under + Nature Autofill
-        $("#ddlGroup").change(function () {
+            // ✅ Under + Nature Autofill
+            $("#ddlGroup").change(function () {
+                var text = $("#ddlGroup option:selected").text();
+                var nature = $("#ddlGroup option:selected").data("nature");
+                $("#txtUnder").val(text);
+                if (nature) {
+                    $("#ddlNature").val(nature).prop("disabled", true);
+                } else {
+                    $("#ddlNature").val("").prop("disabled", false);
+                }
+            });
 
-            var text = $("#ddlGroup option:selected").text();
-            var nature = $("#ddlGroup option:selected").data("nature");
+            // ✅ Row Click → EDIT MODE
+            $(document).on("click", ".editRow", function () {
+                var id = $(this).data("id");
+                var name = $(this).data("name");
 
-            $("#txtUnder").val(text);
+                if (name.toLowerCase() === "primary") {
+                    alert("❌ 'Primary' Group Can Not Be Edited!");
+                    return;
+                }
 
-            if (nature) {
-                $("#ddlNature").val(nature).prop("disabled", true);
-            } else {
-                $("#ddlNature").val("").prop("disabled", false);
-            }
+                $("#ddlGroup option").show();
+                $("#ddlGroup option[value='" + id + "']").hide();
+
+                $("#hdnEditId").val(id);
+                $("#txtName").val(name);
+                $("#ddlGroup").val($(this).data("under")).trigger("change");
+                $("#ddlNature").val($(this).data("nature"));
+            });
+
+            // ✅ Save (ADD + EDIT)
+            $("#btnSave").click(function () {
+                var id = $("#hdnEditId").val();
+                var name = $("#txtName").val().trim();
+                var under = $("#ddlGroup").val();
+                var nature = $("#ddlNature").val();
+
+                if (name === "" || nature === "") {
+                    alert("All fields required");
+                    return;
+                }
+
+                var isDuplicate = false;
+                var currentId = $("#hdnEditId").val();
+                var newName = name.toLowerCase();
+
+                $(".editRow").each(function () {
+                    var existingName = $(this).data("name").toString().trim().toLowerCase();
+                    var existingId = $(this).data("id").toString();
+
+                    if (existingName === newName && existingId !== currentId) {
+                        isDuplicate = true;
+                        return false;
+                    }
+                });
+
+                if (isDuplicate) {
+                    alert("❌ Duplicate Name is Not Allowed");
+                    return;
+                }
+
+                if (newName === "primary" && id != "0") {
+                    alert("❌ 'Primary' Group can not be updated");
+                    return;
+                }
+
+                $.ajax({
+                    url: "/Account/SaveGroup",
+                    type: "POST",
+                    data: {
+                        id: id,
+                        name: name,
+                        underGroupId: under,
+                        nature: nature
+                    },
+                    success: function (res) {
+                        if (res === "Duplicate") {
+                            alert("❌ Duplicate Name is Not Allowed");
+                        } else if (res === "PrimaryNotEditable") {
+                            alert("❌ 'Primary' Group Edit Karna Allowed Nahi Hai!");
+                        } else {
+                            alert("✅ " + res);
+                            location.reload();
+                        }
+                    }
+                });
+            });
+
+            // ✅ Show Popup
+            $("#btnShowGroups").click(function () {
+                $("#groupPopup").show();
+            });
+
+            // ✅ Popup Search
+            $("#groupSearch").keyup(function () {
+                var v = $(this).val().toLowerCase();
+                $("#popupGroupBody tr").each(function () {
+                    var text = $(this).data("name").toLowerCase();
+                    $(this).toggle(text.indexOf(v) > -1);
+                });
+            });
+
+            // ✅ Popup Row Click → Fill Form
+            $(document).on("click", ".popupRow", function () {
+                $("#hdnEditId").val($(this).data("id"));
+                $("#txtName").val($(this).data("name"));
+                $("#ddlGroup").val($(this).data("under")).trigger("change");
+                $("#ddlNature").val($(this).data("nature"));
+                $("#groupPopup").hide();
+            });
+
         });
+                // ✅ Clear Form
+        $("#btnClear").click(function () {
 
-        // ✅ Row Click → EDIT MODE
-        // ✅ Primary Block + Current Editing Group Hide from Dropdown
-        $(document).on("click", ".editRow", function () {
+            // reset hidden id
+            $("#hdnEditId").val("0");
 
-            var id = $(this).data("id");
-            var name = $(this).data("name");
+            // clear inputs
+            $("#txtName").val("");
+            $("#txtUnder").val("");
+            $("#ddlNature").val("").prop("disabled", false);
 
-            // ❌ Primary edit block
-            if (name.toLowerCase() === "primary") {
-                alert("❌ 'Primary' Group Can Not Be Edited!");
-                return;
-            }
-
-            // ✅ Pehle sab dropdown options wapas dikhao
+            // dropdown reset
+            $("#ddlGroup").val("");
             $("#ddlGroup option").show();
-
-            // ✅ Current editing group ko dropdown se hide karo
-            $("#ddlGroup option[value='" + id + "']").hide();
-
-            $("#hdnEditId").val(id);
-            $("#txtName").val(name);
-            $("#ddlGroup").val($(this).data("under")).trigger("change");
-            $("#ddlNature").val($(this).data("nature"));
-        });
-
-        // ✅ Save (ADD + EDIT)
-        $("#btnSave").click(function () {
-
-            var id = $("#hdnEditId").val();
-            var name = $("#txtName").val().trim();
-            var under = $("#ddlGroup").val();
-            var nature = $("#ddlNature").val();
-
-            if (name === "" || nature === "") {
-                alert("All fields required");
-                return;
-            }
-
-            // ✅ Duplicate Name Check (Client Side)
-            var isDuplicate = false;
-            var currentId = $("#hdnEditId").val();
-            var newName = name.toLowerCase();
-
-            $(".editRow").each(function () {
-                var existingName = $(this).data("name").toString().trim().toLowerCase();
-                var existingId = $(this).data("id").toString();
-
-                if (existingName === newName && existingId !== currentId) {
-                    isDuplicate = true;
-                    return false;
-                }
-            });
-
-            if (isDuplicate) {
-                alert("❌ Duplicate Name is Not Allowed");
-                return;
-            }
-
-            // ✅ Primary Protection on Save
-            if (newName === "primary" && id != "0") {
-                alert("❌ 'Primary' Group ko update karna allowed nahi hai!");
-                return;
-            }
-
-            $.ajax({
-                url: "/Account/SaveGroup",
-                type: "POST",
-                data: {
-                    id: id,
-                    name: name,
-                    underGroupId: under,
-                    nature: nature
-                },
-                success: function (res) {
-
-                    if (res === "Duplicate") {
-                        alert("❌ Duplicate Name is Not Allowed");
-                    }
-                    else if (res === "PrimaryNotEditable") {
-                        alert("❌ 'Primary' Group Edit Karna Allowed Nahi Hai!");
-                    }
-                    else {
-                        alert("✅ " + res);
-
-                        // ✅ Dropdown normal restore
-                        $("#ddlGroup option").show();
-
-                        location.reload();
-                    }
-                }
-            });
 
         });
 

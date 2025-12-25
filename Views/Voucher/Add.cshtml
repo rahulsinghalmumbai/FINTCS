@@ -1,0 +1,539 @@
+﻿
+@model FINTCS.ViewModels.VoucherVM
+@{
+    ViewData["Title"] = "Add Voucher";
+}
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9f9f9;
+    }
+
+    h4 {
+        color: #0d6efd;
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        font-weight: 600;
+    }
+
+    input[readonly] {
+        background-color: #e9ecef;
+    }
+
+    #voucherTable {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+    }
+
+        #voucherTable th {
+            background-color: #0d6efd;
+            color: #fff;
+            text-align: center;
+        }
+
+        #voucherTable td {
+            vertical-align: middle;
+        }
+
+        #voucherTable tfoot tr {
+            background-color: #e9ecef;
+        }
+
+    .text-end {
+        text-align: right;
+        padding-right: 10px;
+    }
+
+    .btn {
+        min-width: 100px;
+    }
+
+    #btnNewVoucher {
+        margin-left: 10px;
+    }
+
+    /* Ledger Modal */
+    #ledgerModal .modal-header {
+        background-color: #0d6efd;
+        color: #fff;
+    }
+</style>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<div class="container mt-3">
+
+    <h4>Add Voucher</h4>
+
+    <!-- TOP SECTION -->
+    <div class="row g-3 mb-2">
+        <div class="col-md-3">
+            <label class="form-label">Voucher Type</label>
+            <select asp-for="VoucherType" class="form-select" id="VoucherType">
+                <option value="">Select Voucher</option>
+                <option value="5">Receipt</option>
+                <option value="6">Payment</option>
+                <option value="7">Journal</option>
+                <option value="8">Contra</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Date</label>
+            <input asp-for="VoucherDate" type="date" class="form-control" />
+        </div>
+        <input type="hidden" id="KeyNo" asp-for="KeyNo" />
+        <div class="col-md-3">
+            <label class="form-label">Voucher No</label>
+            <input asp-for="SerialNo" class="form-control" id="VoucherNo" readonly />
+        </div>
+    </div>
+
+    <!-- GRID -->
+    <table class="table table-bordered mt-3" id="voucherTable">
+        <thead>
+            <tr>
+                <th>Particulars</th>
+                <th width="150">Debit</th>
+                <th width="150">Credit</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+            <tr class="fw-bold">
+                <td>Total</td>
+                <td id="drTotal" class="text-end">0</td>
+                <td id="crTotal" class="text-end">0</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- ADD ROW -->
+    <div class="row g-2 align-items-end mt-2">
+        <div class="col-md-2">
+            <label class="form-label">Dr / Cr</label>
+            <select id="DbCr" class="form-select">
+                <option value="1">Dr</option>
+                <option value="2">Cr</option>
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Particular</label>
+            <input type="text" id="Particular" class="form-control" readonly />
+            <input type="hidden" id="ParticularCode" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Amount</label>
+            <input type="number" id="Amount" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <button type="button" class="btn btn-primary" id="btnAdd">Add</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM FIELDS -->
+    <div class="row g-3 mt-3">
+        <div class="col-md-3">
+            <label class="form-label">Cheque No</label>
+            <input asp-for="ChequeNo" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Cheque Date</label>
+            <input asp-for="ChequeDate" type="date" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <label class="form-label">Narration</label>
+            <input asp-for="Narration" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Remarks</label>
+            <input asp-for="Remarks" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mt-2">
+        <div class="col-md-3">
+            <label class="form-label">Passed Date</label>
+            <input asp-for="PassedDate" type="date" class="form-control" />
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button class="btn btn-success" id="btnSave" disabled>Save</button>
+        <button type="button" id="btnNewVoucher" class="btn btn-secondary">New Voucher</button>
+        <button class="btn btn-warning" id="btnEditVoucher">
+            Edit Voucher
+        </button>
+    </div>
+</div>
+
+<!-- LEDGER MODAL -->
+<div class="modal fade" id="ledgerModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Select Ledger</h5>
+            </div>
+            <div class="modal-body" id="ledgerBody"></div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editVoucherModal">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header bg-warning">
+                <h5>Edit Voucher</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <input type="radio" name="searchType" value="month" checked />
+                        Current Month
+                    </div>
+                    <div class="col-md-2">
+                        <input type="radio" name="searchType" value="period" />
+                        Period
+                    </div>
+
+                    <div class="col-md-3">
+                        <input type="date" id="FromDate" class="form-control" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" id="ToDate" class="form-control" disabled />
+                    </div>
+                </div>
+
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Serial No</th>
+                            <th>Date</th>
+                            <th>Ledger</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editVoucherBody"></tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let editIndex = -1;
+    let drTotal = 0;
+    let crTotal = 0;
+    let items = [];
+
+    // ================= LEDGER SEARCH =================
+    $("#Particular").click(function () {
+        let vt = $("#VoucherType").val();
+        let dbcr = $("#DbCr").val();
+
+        $.get("/Voucher/SearchLedger", { voucherType: vt, dbCr: dbcr }, function (res) {
+            $("#ledgerBody").html(res);
+            $("#ledgerModal").modal("show");
+        });
+    });
+
+    function selectLedger(code, name) {
+        $("#Particular").val(name);
+        $("#ParticularCode").val(code);
+        $("#ledgerModal").modal("hide");
+    }
+
+    // ================= ADD ROW =================
+       $("#btnAdd").click(function () {
+
+        let dbcr = $("#DbCr").val();
+        let amt = parseFloat($("#Amount").val());
+        let name = $("#Particular").val();
+        let code = $("#ParticularCode").val();
+
+        if (!name || isNaN(amt) || amt <= 0) {
+            alert("Invalid Entry");
+            return;
+        }
+
+        if (editIndex === -1) {
+            // ➕ ADD
+            items.push({
+                DbCr: dbcr,
+                ParticularCode: code,
+                ParticularName: name,
+                Amount: amt
+            });
+        } else {
+            // ✏️ UPDATE
+            items[editIndex] = {
+                DbCr: dbcr,
+                ParticularCode: code,
+                ParticularName: name,
+                Amount: amt
+            };
+            editIndex = -1;
+            $("#btnAdd").text("Add").removeClass("btn-warning").addClass("btn-primary");
+        }
+
+        $("#Particular,#ParticularCode,#Amount").val("");
+        renderTable();
+    });
+
+
+    // ================= SAVE =================
+       $("#btnSave").click(function () {
+
+        if (drTotal !== crTotal) {
+            alert("Debit & Credit must be equal");
+            return;
+        }
+
+        if (!$("#VoucherNo").val()) {
+            alert("VoucherType select kare");
+            return;
+        }
+
+        let btn = $(this);
+        btn.prop("disabled", true);
+
+        let data = {
+            KeyNo: $("#KeyNo").val(),
+            VoucherType: $("#VoucherType").val(),
+            VoucherDate: $("#VoucherDate").val(),
+            ChequeNo: $("#ChequeNo").val(),
+            ChequeDate: $("#ChequeDate").val(),
+            SerialNo: $("#VoucherNo").val(),
+            Narration: $("#Narration").val(),
+            Remarks: $("#Remarks").val(),
+            PassedDate: $("#PassedDate").val(),
+            Items: items
+        };
+
+        $.ajax({
+            url: '/Voucher/Add',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify(data),
+            success: function (res) {
+
+                if (!res.success) {
+                    alert(res.message);
+                    btn.prop("disabled", false);
+                    return;
+                }
+
+                // ✅ ONLY ALERT — NOTHING ELSE
+                alert(res.message);
+
+                // 🔒 double save se bachane ke liye
+                btn.prop("disabled", true);
+            },
+            error: function () {
+                alert("Server error");
+                btn.prop("disabled", false);
+            }
+        });
+    });
+
+
+    // ================= VOUCHER TYPE CHANGE =================
+    $("#VoucherType").change(function () {
+
+        let voucherType = $(this).val();
+
+        // RESET EVERYTHING
+        items = [];
+        drTotal = crTotal = 0;
+        $("#voucherTable tbody").empty();
+        $("#drTotal,#crTotal").text("0");
+        $("#btnSave").prop("disabled", true);
+
+        if (!voucherType) {
+            $("#VoucherNo").val("");
+            return;
+        }
+
+        $.ajax({
+            url: '/Voucher/GetNextVoucherNo',
+            type: 'GET',
+            data: { voucherType: voucherType },
+            success: function (serialNo) {
+                $("#VoucherNo").val(serialNo);
+            },
+            error: function () {
+                alert("Voucher No load nahi ho pa raha");
+            }
+        });
+    });
+        $("#btnNewVoucher").click(function () {
+
+        // if (!confirm("New voucher banana hai? Current data clear ho jayega")) {
+        //     return;
+        // }
+
+        // 🔄 Reset JS variables
+        items = [];
+        drTotal = 0;
+        crTotal = 0;
+
+        // 🔄 Clear table
+        $("#voucherTable tbody").empty();
+
+        // 🔄 Reset totals
+        $("#drTotal").text("0");
+        $("#crTotal").text("0");
+
+        // 🔄 Clear form fields
+        $("#VoucherType").val("").trigger("change");
+        $("#VoucherNo").val("");
+        $("#VoucherDate").val("");
+        $("#ChequeNo").val("");
+        $("#ChequeDate").val("");
+        $("#Narration").val("");
+        $("#Remarks").val("");
+        $("#PassedDate").val("");
+
+        // 🔄 Enable save button again
+        $("#btnSave").prop("disabled", false);
+
+        // 🔄 Focus first field
+        $("#VoucherType").focus();
+    });
+        $("#btnEditVoucher").click(function () {
+
+        if (!$("#VoucherType").val()) {
+            alert("Voucher Type select kare");
+            return;
+        }
+
+        loadEditVouchers();
+        $("#editVoucherModal").modal("show");
+    });
+
+    $("input[name='searchType']").change(function () {
+
+        let type = $(this).val();
+        $("#FromDate,#ToDate").prop("disabled", type !== "period");
+
+        loadEditVouchers();
+    });
+
+    function loadEditVouchers() {
+
+        $.get("/Voucher/SearchEditVouchers", {
+            voucherType: $("#VoucherType").val(),
+            searchType: $("input[name='searchType']:checked").val(),
+            fromDate: $("#FromDate").val(),
+            toDate: $("#ToDate").val()
+        }, function (res) {
+            $("#editVoucherBody").html(res);
+        });
+    }
+
+    function openVoucherForEdit(keyNo) {
+        $("#editVoucherModal").modal("hide");
+        window.location.href = "/Voucher/Edit?keyNo=" + keyNo;
+    }
+         // ================= EDIT MODE LOAD =================
+      // ================= EDIT MODE LOAD =================
+                 $(document).ready(function () {
+
+        let itemsFromServer = @Html.Raw(
+                        System.Text.Json.JsonSerializer.Serialize(
+                                Model.Items ?? new List<FINTCS.ViewModels.VoucherItemVM>()
+                        )
+                );
+
+        if (!itemsFromServer || itemsFromServer.length === 0) return;
+
+        items = [];
+
+        itemsFromServer.forEach(i => {
+            items.push({
+                DbCr: i.DbCr,
+                ParticularCode: i.ParticularCode,
+                ParticularName: i.ParticularName,
+                Amount: parseFloat(i.Amount)
+            });
+        });
+
+        renderTable();
+    });
+
+
+        function renderTable() {
+
+        $("#voucherTable tbody").empty();
+        drTotal = 0;
+        crTotal = 0;
+
+        items.forEach((i, index) => {
+
+            let dr = "";
+            let cr = "";
+
+            if (i.DbCr == 1) {
+                dr = i.Amount.toFixed(2);
+                drTotal += i.Amount;
+            } else {
+                cr = i.Amount.toFixed(2);
+                crTotal += i.Amount;
+            }
+
+            $("#voucherTable tbody").append(`
+                <tr data-index="${index}">
+                    <td>${i.ParticularName}</td>
+                    <td class="text-end">${dr}</td>
+                    <td class="text-end">${cr}</td>
+                </tr>
+            `);
+        });
+
+        $("#drTotal").text(drTotal.toFixed(2));
+        $("#crTotal").text(crTotal.toFixed(2));
+        $("#btnSave").prop("disabled", drTotal !== crTotal);
+    }
+        $("#voucherTable").on("click", "tr", function () {
+
+        let index = $(this).data("index");
+        let item = items[index];
+
+        editIndex = index;
+
+        $("#DbCr").val(item.DbCr);
+        $("#Particular").val(item.ParticularName);
+        $("#ParticularCode").val(item.ParticularCode);
+        $("#Amount").val(item.Amount);
+
+        $("#btnAdd").text("Update").removeClass("btn-primary").addClass("btn-warning");
+    });
+        $("#voucherTable").on("dblclick", "tr", function () {
+
+        if (!confirm("Delete this row?")) return;
+
+        let index = $(this).data("index");
+        items.splice(index, 1);
+
+        editIndex = -1;
+        $("#btnAdd").text("Add").removeClass("btn-warning").addClass("btn-primary");
+
+        renderTable();
+    });
+
+</script>

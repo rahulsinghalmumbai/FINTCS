@@ -181,7 +181,7 @@
 
         <!-- OPENING -->
         <div class="form-row">
-            <label>Opening</label>
+            <label>Opening Balance</label>
             <input type="text" id="OpeningBalance"
                    name="OpeningBalance" value="0"
                    class="text-input" />
@@ -196,37 +196,66 @@
             </select>
         </div>
 
+        <!-- MEMBER SPECIFIC -->
+        <div class="form-row" id="memberSpecificRow2">
+            <label>Member Specific</label>
+            <input type="checkbox"
+                   id="MemberSpecific"
+                   name="MemberSpecific"
+                   value="true" />
+            <span class="small-text">Create ledger for each member</span>
+        </div>
+        <div class="form-row" id="memberSpecificRow">
+            <label>Bank/Cash</label>
+            <input type="checkbox"
+                   id="IsBank"
+                   name="IsBank"
+                   value="true" onchange="toggleMemberSpecific()" />
+            <span class="small-text">Ledger Under Bank/Cash</span>
+        </div>
+       
+        <div class="d-flex gap-2">
         <button type="submit"
                 class="btn btn-primary" style="width:100%">
             Save
         </button>
+            <button type="button" id="btnClear"
+                    class="btn btn-secondary" style="width:100%">
+                Clear
+            </button>
+        @* <button type="button"
+                id="btnClear"
+                class="btn btn-secondary"
+                style="width:100%;margin-top:10px">
+            Clear
+        </button> *@
+        </div>
     </form>
 </div>
 
 <!-- LEDGER POPUP -->
-<!-- LEDGER POPUP -->
 <div id="ledgerPopup">
     <h4 style="text-align:center">Select Ledger</h4>
 
-    <!-- SEARCH : ONLY LEDGER -->
     <input type="text" id="ledgerSearchBox"
            class="text-input"
            placeholder="Search Ledger" />
 
-    <!-- GRID HEADER -->
     <div class="ledger-grid-header">
         <div>Ledger</div>
         <div>Group</div>
     </div>
 
-    <!-- GRID BODY -->
     <div class="ledger-grid">
         @foreach (var l in ViewBag.GroupLedgers)
         {
             <div class="ledger-grid-row ledger-item"
                  data-id="@l.Id"
                  data-name="@l.ledger"
-                 data-groupid="@l.GroupId">
+                 data-groupid="@l.GroupId"
+                 data-opening="@l.OpeningBalance"
+                 data-drcr="@l.drcr"
+                 data-bank="@l.Bank">
                 <div><b>@l.ledger</b></div>
                 <div class="small-text">@l.GroupName</div>
             </div>
@@ -239,8 +268,6 @@
         Close
     </button>
 </div>
-
-
 
 <!-- GROUP POPUP -->
 <div id="groupPopup">
@@ -270,67 +297,120 @@
 <script>
     $(document).ready(function () {
 
-        function setModeUI() {
-            let mode = $('input[name="mode"]:checked').val();
+        // ================= MODE UI =================
+            function setModeUI() {
 
-            if (mode === "update") {
-                $("#showLedgerBtn").show();
-                $("#ledger").val('').prop("disabled", true);
-                $("#Id").val('');
-            } else {
-                $("#showLedgerBtn").hide();
-                $("#ledger").prop("disabled", false);
-                $("#ledger").val('');
-                $("#Id").val('');
-            }
+        let mode = $('input[name="mode"]:checked').val();
+
+        if (mode === "update") {
+
+            $("#showLedgerBtn").show();
+            $("#ledger").val('').prop("disabled", true);
+            $("#Id").val('');
+
+            $("#memberSpecificRow").show();
+            $("#memberSpecificRow2").hide();
+            $("#MemberSpecific").prop("checked", false);
+
+        } else {
+
+            // 🔥 NEW MODE → AUTO CLEAR
+            $("#ledgerForm")[0].reset();
+            $("#Id").val("");
+
+            $("#showLedgerBtn").hide();
+
+            $("#ledger").prop("disabled", false).val("");
+
+            $("#memberSpecificRow").show();
+            $("#memberSpecificRow2").show();
+
+            $("#OpeningBalance").val(0).prop("readonly", false);
+            $("#drcr").val("1");
+
+            $("#ledgerPopup").hide();
+            $("#groupPopup").hide();
         }
+    }
+
 
         setModeUI();
         $('input[name="mode"]').change(setModeUI);
 
+        // ================= LEDGER POPUP =================
         $("#showLedgerBtn").click(function () {
             $("#ledgerPopup").show();
         });
 
-            $("#ledgerSearchBox").keyup(function () {
-        let v = $(this).val().toLowerCase();
-        $(".ledger-item").each(function () {
-            let ledgerName = $(this).data("name").toLowerCase();
-            $(this).toggle(ledgerName.indexOf(v) > -1);
+        $("#ledgerSearchBox").keyup(function () {
+            let v = $(this).val().toLowerCase();
+            $(".ledger-item").each(function () {
+                let ledgerName = $(this).data("name").toLowerCase();
+                $(this).toggle(ledgerName.indexOf(v) > -1);
+            });
         });
+
+        // ================= LEDGER SELECT =================
+           $(".ledger-item").click(function () {
+
+        let ledgerId = $(this).data("id");
+        let ledgerName = $(this).data("name");
+        let groupId = $(this).data("groupid");
+        let opening = $(this).data("opening");
+        let drcrVal = $(this).data("drcr");
+
+        // ✅ FIX FOR data-bank="True"
+        let bankRaw = $(this).attr("data-bank");
+        let isBank =
+            bankRaw === true ||
+            bankRaw === "True" ||
+            bankRaw === "true" ||
+            bankRaw === 1 ||
+            bankRaw === "1";
+
+        $("#Id").val(ledgerId);
+        $("#ledger").val(ledgerName).prop("disabled", false);
+        $("#GroupId").val(groupId);
+
+        if (opening !== undefined) $("#OpeningBalance").val(opening);
+        if (drcrVal !== undefined) $("#drcr").val(drcrVal);
+
+        // 🔥 BANK CHECK / UNCHECK
+        $("#IsBank").prop("checked", isBank);
+
+        // MemberSpecific always OFF
+        $("#MemberSpecific").prop("checked", false);
+
+        $("#memberSpecificRow2").hide();
+        $("#memberSpecificRow").show();
+
+        $("#ledgerPopup").hide();
     });
 
-        $(".ledger-item").click(function () {
-            $("#Id").val($(this).data("id"));
-            $("#ledger").val($(this).data("name")).prop("disabled", false);
-            $("#GroupId").val($(this).data("groupid"));
-            $("#ledgerPopup").hide();
-        });
 
+        // ================= GROUP POPUP =================
         $("#openGroupList").click(function () {
             $("#groupPopup").show();
         });
 
-            $("#groupSearch").on("keyup", function () {
-        let v = $(this).val().toLowerCase();
-
-        $(".group-item").each(function () {
-            let text = $(this).text().toLowerCase();
-            $(this).toggle(text.indexOf(v) > -1);
+        $("#groupSearch").keyup(function () {
+            let v = $(this).val().toLowerCase();
+            $(".group-item").each(function () {
+                let text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(v) > -1);
+            });
         });
-    });
 
         $(".group-item").click(function () {
             $("#GroupId").val($(this).data("id"));
             $("#groupPopup").hide();
         });
 
-        $("#ledgerForm").submit(function (e) {
-            e.preventDefault();
+        // ================= DUPLICATE CHECK =================
+        $("#ledgerForm").on("submit", function () {
 
             let name = $("#ledger").val().trim();
             let id = $("#Id").val();
-            let mode = $('input[name="mode"]:checked').val();
             let duplicate = false;
 
             $(".ledger-item").each(function () {
@@ -344,10 +424,87 @@
 
             if (duplicate) {
                 Swal.fire("Error", "Ledger name already exists", "error");
-                return;
+                return false;
+            }
+            return true;
+        });
+
+        // ================= MEMBER SPECIFIC =================
+        $("#MemberSpecific").change(function () {
+
+            if ($(this).is(":checked")) {
+                $("#OpeningBalance").val(0).prop("readonly", true);
+                $("#drcr").val("1");
+                $("#IsBank").prop("checked", false);
+            } else {
+                $("#OpeningBalance").prop("readonly", false);
+            }
+        });
+
+        // ================= BANK / CASH =================
+        $("#IsBank").change(function () {
+            if ($(this).is(":checked")) {
+                $("#MemberSpecific").prop("checked", false);
+            }
+        });
+
+        // ================= CLEAR =================
+        $("#btnClear").click(function () {
+
+            $("#ledgerForm")[0].reset();
+            $("#Id").val("");
+
+            $("input[name='mode'][value='new']").prop("checked", true);
+
+            $("#ledger").prop("disabled", false).val("");
+
+            $("#memberSpecificRow").show();
+            $("#memberSpecificRow2").show();
+
+            $("#OpeningBalance").val(0).prop("readonly", false);
+            $("#drcr").val("1");
+
+            $("#showLedgerBtn").hide();
+            $("#ledgerPopup").hide();
+            $("#groupPopup").hide();
+        });
+
+        // ================= OPENING BALANCE VALIDATION =================
+        $("#OpeningBalance").on("keypress", function (e) {
+
+            let charCode = e.which ? e.which : e.keyCode;
+            let value = $(this).val();
+
+            if (charCode === 8 || charCode === 9) return true;
+            if (charCode === 46 && value.indexOf('.') === -1) return true;
+
+            if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        $("#OpeningBalance").on("input", function () {
+
+            let val = $(this).val().replace(/[^0-9.]/g, '');
+
+            let parts = val.split('.');
+            if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
             }
 
-            this.submit();
+            $(this).val(val);
         });
+
+        $("#OpeningBalance")
+            .on("focus", function () {
+                if ($(this).val() === "0") $(this).val("");
+            })
+            .on("blur", function () {
+                if ($(this).val().trim() === "") $(this).val("0");
+            });
+
     });
 </script>
+
+

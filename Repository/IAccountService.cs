@@ -1,6 +1,8 @@
 ﻿
 using FINTCS.DTOs;
 using FINTCS.Models;
+using FINTCS.ViewModels;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
 namespace FINTCS.Repository
@@ -26,5 +28,17 @@ namespace FINTCS.Repository
 
         string GenerateLedgerCode(int groupId);
         void UpdateLedgerWithCodeAdjust(LEDGERAC ledger);
+        void SaveMemberSpecificLedger(LEDGERAC model);
+        int GetNextSerial(int voucherType);
+        List<LEDGERAC> GetLedgersForVoucher(int voucherType, int dbCr);
+        bool SaveVoucher(VoucherVM model, out string message);
+        bool IsPastDateAllowed(DateTime voucherDate);
+        List<EditVoucherRowVM> SearchEditVouchers(
+             int voucherType,
+             string searchType,
+             DateTime? fromDate,
+             DateTime? toDate);
+
+        VoucherVM GetVoucherForEdit(int keyNo);
     }
 }

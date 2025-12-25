@@ -1,0 +1,11 @@
+﻿@model List<LEDGERAC>
+
+<table class="table table-hover">
+    @foreach (var l in Model)
+    {
+        <tr style="cursor:pointer"
+            onclick="selectLedger('@l.LEDGERCODE','@l.ledger')">
+            <td>@l.ledger</td>
+        </tr>
+    }
+</table>
